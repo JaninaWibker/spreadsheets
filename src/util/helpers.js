@@ -26,14 +26,39 @@ const createTable = (start_x, start_y, end_x, end_y, cell) =>
     .map(x => x + start_y)
     .map(x => createRow(start_x, end_x, x, cell))
 
+const fillTableEmpty = (height, width, array) =>
+  range(height).map(x =>
+    range(width).map(y =>
+      array[x]
+      ? array[x][y]
+        ? array[x][y]
+        : createEmptyCell('' + x + '.' + y)
+      : createRow(0, width, x, createEmptyCell())
+  ))
+
+const fillTableIds = (height, width, array) =>
+  range(height).map(x =>
+    range(width).map(y =>
+      array[x]
+      ? array[x][y]
+        ? array[x][y].id
+          ? array[x][y]
+          : {id: '' + x + '.' + y, ...array[x][y]}
+        : createStringCell('' + x + '.' + y, '**WARNING**: MISSING CELL')
+      : createRow(0, width, x, createStringCell(null, '**WARNING**: MISSING CELL'))
+  ))
+
 export default {
   range,
   createCell,
+  createEmptyCell,
   createStringCell,
   createNumberCell,
   createRow,
   createCol,
-  createTable
+  createTable,
+  fillTableEmpty,
+  fillTableIds
 }
 
 export {
@@ -44,5 +69,7 @@ export {
   createNumberCell,
   createRow,
   createCol,
-  createTable
+  createTable,
+  fillTableEmpty,
+  fillTableIds
 }
