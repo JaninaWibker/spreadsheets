@@ -2,7 +2,24 @@ import React, { Component } from 'react'
 import styled from 'styled-components'
 
 import Cell from './Cell.js'
-import marked from '../util/inline-markdown.js'
+import { inlineLexer } from '../util/inline-markdown.js'
+
+const MARKED_OPTIONS = {
+  smartypants: true
+}
+
+
+const CELL_WIDTH = 224
+const CELL_WIDTH_PX = CELL_WIDTH + 'px'
+const CELL_HEIGHT = 25
+const CELL_HEIGHT_PX = CELL_HEIGHT + 'px'
+
+const INDEX_CELL_WIDTH = 80
+const INDEX_CELL_WIDTH_PX = INDEX_CELL_WIDTH + 'px'
+const INDEX_CELL_HEIGHT = 25
+const INDEX_CELL_HEIGHT_PX = INDEX_CELL_HEIGHT + 'px'
+
+const marked = text => inlineLexer(text, {}, MARKED_OPTIONS)
 
 const Table = styled.table`
   font-size: 14px;
@@ -13,12 +30,45 @@ const Table = styled.table`
   border-color: #cacaca;
   table-layout: fixed;
 
+  // width & height for the outer most cells with the 'index' (A, B, C...; 1, 2, 3...)
+  th {
+    width: ${INDEX_CELL_WIDTH_PX};
+    height: ${INDEX_CELL_HEIGHT_PX};
+  }
+
+  // the left-most and top-most cell (0/0 technically; the one with the '/').
+  // This needs to have both width & height from the index_cell constants instead of only one of them
+  th.border.border-left-top {
+    width: ${INDEX_CELL_WIDTH_PX};
+    height: ${INDEX_CELL_HEIGHT_PX};
+  }
+
+  // **top-most row**
+  // settings the width to the default cell width (because this has to fit to the normal cells)
+  // but setting the height to the index cell height (this does not have to fit to the normal cells)
+  th.border.border-top {
+    width: ${CELL_WIDTH_PX};
+    height: ${INDEX_CELL_HEIGHT_PX};
+  }
+
+  // **left-most row**
+  // setting the height to the default cell height (because this has to fit to the normal cells)
+  // but setting the width to the index cell width (this does not have t ofit to the normal cells)
+  th.border.border-left {
+    width: ${INDEX_CELL_WIDTH_PX};
+    height: ${CELL_HEIGHT_PX}
+  }
+
+  // width & height for all other cells
+  tr > td {
+    width: ${CELL_WIDTH_PX};
+    height: ${CELL_HEIGHT_PX};
+  }
+
   th, tr > td {
     position: relative;
     display: inline-block;
     box-sizing: border-box;
-    width: 80px;
-    height: 25px;
     margin: 0px;
     padding: 0px;
     border-width: 1px 1px 0 0;
@@ -84,9 +134,9 @@ const format_data = (data, tp, stp, r_dec) => {
     if(r_dec) return round(data, r_dec)
     else return data
   } else if(tp === 'STRING') {
-    if(stp === 'UPPERCASE') return marked.inlineLexer(data.toUpperCase(), {}, {})
-    if(stp === 'LOWERCASE') return marked.inlineLexer(data.toLowerCase(), {}, {})
-    else return marked.inlineLexer(String(data), {}, {})
+    if(stp === 'UPPERCASE') return marked(data.toUpperCase(), {}, {smartypants: true})
+    if(stp === 'LOWERCASE') return marked(data.toLowerCase(), {}, {smartypants: true})
+    else return marked(String(data), {}, {smartypants: true})
   } else {
     return data
   }
@@ -278,31 +328,36 @@ export default class Spreadsheet extends Component {
     )
   }
 
+  // `+1` because of some weird situation where a scrollbar would appear because of some subpixel stuff or something
+  // I guess almost everyone has seen this kind of weirdness before where it should be enough but like 0.01px more are
+  // required for some reason (could be floating point precision but I don't think so, probably just subpixel rendering stuff)
   render() {
     return (
       <div style={{
-        width: ((this.data[0].length + 1) * 80) + 'px',
-        height: ((this.data.length + 1) * 25) + 'px'
+        width: (((this.data[0].length) * CELL_WIDTH) + INDEX_CELL_WIDTH + 1) + 'px',
+        height: (((this.data.length) * CELL_HEIGHT) + INDEX_CELL_HEIGHT + 1) + 'px'
       }}>
       <Table>
         <tbody>
           <tr id={'r0l'} key={'r0l'}>
-            <th id={'c0r0_'} key={'c0r0_'}>{'/'}</th>
-            {range(this.columns).map(x => <Cell key={'c' + x + '_'} id={'c' + x + '_'} content={this.alphabet[x]} isBorder={true} />)}
+            <th className="border border-left-top" id={'c0r0_'} key={'c0r0_'}>{'/'}</th>
+            {range(this.columns).map(x =>
+                <Cell key={'c' + x + '_'} id={'c' + x + '_'} className="border-top" content={this.alphabet[x]} isBorder={true} />
+            )}
           </tr>
           {range(this.rows).map(x =>
             <tr id={'r' + x} key={'r' + x}>
-              <Cell key={'r' + x + '_'} id={'r' + x + '_'} content={x+1} isBorder={true} />
+              <Cell key={'r' + x + '_'} id={'r' + x + '_'} className="border-left" content={x+1} isBorder={true} />
               {range(this.columns).map(y => this.render_cell(this.data[x][y]))}
             </tr>
           )}
         </tbody>
       </Table>
       <Selection innerRef={x => this.selectionElement = x} style={{
-        width:  ((Math.abs(this.state.selection.start_x - this.state.selection.end_x) * 80) + 80) + 'px',
-        height: ((Math.abs(this.state.selection.start_y - this.state.selection.end_y) * 25) + 25) + 'px',
-        left: ((Math.min(this.state.selection.start_x, this.state.selection.end_x) * 80) + 80) + 'px',
-        top: ((Math.min(this.state.selection.start_y, this.state.selection.end_y) * 25) + 25) + 'px',
+        width:  ((Math.abs(this.state.selection.start_x - this.state.selection.end_x) * CELL_WIDTH) + CELL_WIDTH) + 'px',
+        height: ((Math.abs(this.state.selection.start_y - this.state.selection.end_y) * CELL_HEIGHT) + CELL_HEIGHT) + 'px',
+        left: ((Math.min(this.state.selection.start_x, this.state.selection.end_x) * CELL_WIDTH) + INDEX_CELL_WIDTH) + 'px',
+        top: ((Math.min(this.state.selection.start_y, this.state.selection.end_y) * CELL_HEIGHT) + INDEX_CELL_HEIGHT) + 'px',
       }}></Selection>
       </div>
     )

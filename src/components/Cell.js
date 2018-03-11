@@ -9,11 +9,12 @@ const BorderCell = styled.th`
     background-color: rgba(248,28,229,0.35);
   }
 `
-const Cell = ({id, content, editable=false, isBorder=false, cb, sel_cb, handleArrowKeys, raw_data, tp, isFocused=false}) => {
+const Cell = ({id, content, className, editable=false, isBorder=false, cb, sel_cb, handleArrowKeys, raw_data, tp, isFocused=false}) => {
   return (
   isBorder
     ? (
       <BorderCell
+        className={'border' + (className ? ' ' + className : '')}
         onMouseDown={e => console.log(e.target, id)}
         onMouseUp={e => console.log(e.target, id)} id={id}>
           <div>

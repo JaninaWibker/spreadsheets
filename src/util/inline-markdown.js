@@ -91,7 +91,7 @@ InlineLexer.prototype.output = function(src) {
 };
 
 InlineLexer.prototype.smartypants = function(text) {
-  if (!this.options.smartypants) return text;
+  if (!this.options.smartypants) return text
   return text
     // em-dashes
     .replace(/---/g, '\u2014')
@@ -106,8 +106,8 @@ InlineLexer.prototype.smartypants = function(text) {
     // closing doubles
     .replace(/"/g, '\u201d')
     // ellipses
-    .replace(/\.{3}/g, '\u2026');
-};
+    .replace(/\.{3}/g, '\u2026')
+}
 
 /**
  * Renderer
@@ -165,8 +165,10 @@ marked.Renderer = Renderer;
 marked.InlineLexer = InlineLexer;
 marked.inlineLexer = InlineLexer.output;
 
-if (typeof module !== 'undefined' && typeof exports === 'object') module.exports = marked;
-else this.marked = marked;
+if (typeof module !== 'undefined' && typeof exports === 'object')
+  module.exports = marked;
+else
+  this.marked = marked;
 }).call(function() {
   return this || (typeof window !== 'undefined' ? window : global);
 }());

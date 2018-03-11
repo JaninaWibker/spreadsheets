@@ -2,6 +2,7 @@ const range = (l) => [...Array(l)].map((x,i) => i)
 
 const createCell = (id, tp='STRING', vl='', stp, fn) => ({ id, tp, stp, vl, fn })
 
+const createEmptyCell = (id) => createCell(id, 'EMPTY')
 const createStringCell = (id, vl, fn, stp) => createCell(id, 'STRING', vl, stp, fn)
 const createNumberCell = (id, vl, fn, stp) => createCell(id, 'NUMBER', vl, stp, fn)
 
@@ -38,6 +39,7 @@ export default {
 export {
   range,
   createCell,
+  createEmptyCell,
   createStringCell,
   createNumberCell,
   createRow,
