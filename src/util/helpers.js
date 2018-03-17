@@ -1,4 +1,73 @@
+import { inlineLexer } from '../util/inline-markdown.js'
+
+const MARKED_OPTIONS = {
+  smartypants: true
+}
+
+const marked = text => inlineLexer(text, {}, MARKED_OPTIONS)
+
+const round = (number, decimals) => Number(Math.round(number + 'e' + decimals) + 'e-' + decimals)
+
 const range = (l) => [...Array(l)].map((x,i) => i)
+
+const Alphabet = 'ABCDEFGHIJKLNMOPQRSTUVWXYZ'.split('')
+const alphabet = 'abcdefghijklnmopqrstuvwxyz'.split('')
+
+const default_value = tp => {
+  if(tp === 'EMPTY') return ''
+  if(tp === 'STRING') return ''
+  if(tp === 'NUMBER') return 0
+}
+
+// format function, cell stuff is given and formatted data is returned
+
+const format_data = (data, tp, stp, r_dec) => {
+  if(typeof tp === 'undefined') throw Error('no type defined')
+  else if(typeof data === 'undefined') data = default_value(tp) // throw Error('no data defined')
+  if(tp === 'NUMBER') {
+    if(stp === 'PERCENTAGE' && r_dec) return round(data * 100, r_dec) + '%'
+    if(stp === 'PERCENTAGE') return (data * 100) + '%'
+    if(r_dec) return round(data, r_dec)
+    else return data
+  } else if(tp === 'STRING') {
+    if(stp === 'UPPERCASE') return marked(data.toUpperCase(), {}, {smartypants: true})
+    if(stp === 'LOWERCASE') return marked(data.toLowerCase(), {}, {smartypants: true})
+    else return marked(String(data), {}, {smartypants: true})
+  } else {
+    return data
+  }
+}
+
+// Viewport stuff (for scrolling when moving the selection)
+
+const isInViewport = (element, offset=40) => {
+  let rect = element.getBoundingClientRect()
+  return (
+    rect.top >= (0 + offset) &&
+    rect.left >= (0 + offset) &&
+    rect.bottom <= ((window.innerHeigth || document.documentElement.clientHeight) - offset) &&
+    rect.right <= ((window.innerWidth || document.documentElement.clientWidth) - offset)
+  )
+}
+
+const scrollIntoViewIfNeeded = (element) =>
+  !isInViewport(element)
+    ? element.scrollIntoView({behavior: 'smooth', block: 'center'})
+    : null
+
+// Array contains keys, those keys are what is to be extracted from the object (including the values)
+
+const destructure = (obj, template) => {
+  let _obj = {}
+  if(Array.isArray(template)) {
+    template.forEach(key => _obj[key] = obj[key])
+  } else {
+    Object.keys(template).forEach(key => _obj[template[key]] = obj[key])
+  }
+  return _obj
+}
+
+// create specific cells, cells in general, whole Table, create Rows and Columns, fill in missing Ids
 
 const createCell = (id, tp='STRING', vl='', stp, fn) => ({ id, tp, stp, vl, fn })
 
@@ -58,7 +127,16 @@ export default {
   createCol,
   createTable,
   fillTableEmpty,
-  fillTableIds
+  fillTableIds,
+  round,
+  destructure,
+  default_value,
+  isInViewport,
+  scrollIntoViewIfNeeded,
+  marked,
+  format_data,
+  Alphabet,
+  alphabet,
 }
 
 export {
@@ -71,5 +149,14 @@ export {
   createCol,
   createTable,
   fillTableEmpty,
-  fillTableIds
+  fillTableIds,
+  round,
+  destructure,
+  default_value,
+  isInViewport,
+  scrollIntoViewIfNeeded,
+  marked,
+  format_data,
+  Alphabet,
+  alphabet,
 }

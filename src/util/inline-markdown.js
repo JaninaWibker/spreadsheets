@@ -13,7 +13,8 @@
 var inline = {
   strong: /^__([\s\S]+?)__(?!_)|^\*\*([\s\S]+?)\*\*(?!\*)/,
   em: /^\b_((?:[^_]|__)+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,
-  text: /^[\s\S]+?(?=[\\<![_*`]| {2,}\n|$)/
+  text: /^[\s\S]+?(?=[\\<![_*`]| {2,}\n|$)/,
+  code: /^(`+)\s*([\s\S]*?[^`]?)\s*\1(?!`)/,
 };
 
 /**
@@ -70,6 +71,13 @@ InlineLexer.prototype.output = function(src) {
     if(cap) {
       src = src.substring(cap[0].length);
       out += this.renderer.em(this.output(cap[2] || cap[1]));
+      continue;
+    }
+
+    // code
+    if (cap = this.rules.code.exec(src)) {
+      src = src.substring(cap[0].length);
+      out += this.renderer.codespan(escape(cap[2].trim(), true));
       continue;
     }
 
@@ -130,6 +138,10 @@ Renderer.prototype.em = function(text) {
 Renderer.prototype.text = function(text) {
   return text;
 };
+
+Renderer.prototype.codespan = function(text) {
+  return '<code>' + text + '</code>';
+}
 
 
 /**

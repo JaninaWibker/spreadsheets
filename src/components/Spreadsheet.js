@@ -2,12 +2,7 @@ import React, { Component } from 'react'
 import styled from 'styled-components'
 
 import Cell from './Cell.js'
-import { inlineLexer } from '../util/inline-markdown.js'
-
-const MARKED_OPTIONS = {
-  smartypants: true
-}
-
+import { range, round, destructure, default_value, marked, format_data, isInViewport, scrollIntoViewIfNeeded, Alphabet, alphabet } from '../util/helpers.js'
 
 const CELL_WIDTH = 224
 const CELL_WIDTH_PX = CELL_WIDTH + 'px'
@@ -19,7 +14,7 @@ const INDEX_CELL_WIDTH_PX = INDEX_CELL_WIDTH + 'px'
 const INDEX_CELL_HEIGHT = 25
 const INDEX_CELL_HEIGHT_PX = INDEX_CELL_HEIGHT + 'px'
 
-const marked = text => inlineLexer(text, {}, MARKED_OPTIONS)
+const IDENTIFIER_CELLS = {}
 
 const Table = styled.table`
   font-size: 14px;
@@ -108,57 +103,6 @@ const Selection = styled.div`
   background-color: rgba(248,28,229,0.1);
 `
 
-const isInViewport = (element, offset=40) => {
-  let rect = element.getBoundingClientRect()
-  return (
-    rect.top >= (0 + offset) &&
-    rect.left >= (0 + offset) &&
-    rect.bottom <= ((window.innerHeigth || document.documentElement.clientHeight) - offset) &&
-    rect.right <= ((window.innerWidth || document.documentElement.clientWidth) - offset)
-  )
-}
-
-const scrollIntoViewIfNeeded = (element) =>
-  !isInViewport(element)
-    ? element.scrollIntoView({behavior: 'smooth', block: 'center'})
-    : null
-
-const round = (number, decimals) => Number(Math.round(number + 'e' + decimals) + 'e-' + decimals)
-
-const format_data = (data, tp, stp, r_dec) => {
-  if(typeof data === 'undefined') throw Error('no data defined')
-  else if(typeof tp === 'undefined') throw Error('no type defined')
-  if(tp === 'NUMBER') {
-    if(stp === 'PERCENTAGE' && r_dec) return round(data * 100, r_dec) + '%'
-    if(stp === 'PERCENTAGE') return (data * 100) + '%'
-    if(r_dec) return round(data, r_dec)
-    else return data
-  } else if(tp === 'STRING') {
-    if(stp === 'UPPERCASE') return marked(data.toUpperCase(), {}, {smartypants: true})
-    if(stp === 'LOWERCASE') return marked(data.toLowerCase(), {}, {smartypants: true})
-    else return marked(String(data), {}, {smartypants: true})
-  } else {
-    return data
-  }
-}
-
-const range = (l) => [...Array(l)].map((x,i) => i)
-
-const destructur = (obj, template) => {
-  let _obj = {}
-  if(Array.isArray(template)) {
-    template.forEach(key => _obj[key] = obj[key])
-  } else {
-    Object.keys(template).forEach(key => _obj[template[key]] = obj[key])
-  }
-  return _obj
-}
-
-const default_value = tp => {
-  if(tp === 'STRING') return ''
-  if(tp === 'NUMBER') return 0
-}
-
 export default class Spreadsheet extends Component {
   constructor(props) {
     super(props)
@@ -171,9 +115,6 @@ export default class Spreadsheet extends Component {
     this._update = this._update.bind(this)
 
     this.props.cb(this.data, this.update)
-
-    this.alphabet = 'ABCDEFGHIJKLNMOPQRSTUVWXYZ'.split('')
-    this._alphabet = 'abcdefghijklnmopqrstuvwxyz'.split('')
 
     this.state = {
       selection: {
@@ -198,7 +139,22 @@ export default class Spreadsheet extends Component {
 
     const g = (cell, call_cell, byRender=false, rec_call_cell) => {
       //console.log(cell, call_cell, byRender, rec_call_cell)
-      const s = cell.split('.')
+      let s
+      if(cell.indexOf('.') === -1) {
+        const match = cell.match(/^([a-zA-Z])+([0-9]+)$/)
+        if(match) {
+          s = [parseInt(match[2])-1, Alphabet.indexOf(match[1].toUpperCase())] // excel-like format (A1, B5, ...)
+        } else {
+          const identifierMatch = cell.match(/^[a-zA-Z_][a-zA-Z_0-9]*$/)
+          if(identifierMatch && IDENTIFIER_CELLS[identifierMatch[0]]) {
+            s = IDENTIFIER_CELLS[identifierMatch[0]] // identifier (like variable names)
+          } else {
+            throw Error('not a valid Cell (named cell not defined or mistakenly identified as identifier (if this is what happened, you probably have an error in your selector))')
+          }
+        }
+      } else {
+        s = cell.split('.') // dot-seperated (was the default, excel-like and identifier were added later on, so this is kind of like the prefered way)
+      }
       const c = this.data[s[0]][s[1]]
 
       const cs = call_cell.split('.')
@@ -222,7 +178,7 @@ export default class Spreadsheet extends Component {
             this.data[s[0]][s[1]].changes = [rcc.id]
 
 
-          console.log(destructur(this.data[rcs[0]][rcs[1]], ['id', 'changes', 'visited']), destructur(this.data[s[0]][s[1]], ['id', 'changes', 'visited']))
+          console.log(destructure(this.data[rcs[0]][rcs[1]], ['id', 'changes', 'visited']), destructure(this.data[s[0]][s[1]], ['id', 'changes', 'visited']))
         }
 
         if(!c.fn) return c.vl
@@ -264,9 +220,12 @@ export default class Spreadsheet extends Component {
 
   render_cell(cell) {
     const s = cell.id.split('.')
+    if(cell.name) {
+      IDENTIFIER_CELLS[cell.name] = [s[0], s[1]]
+    }
     const editable = ((cell.tp === 'NUMBER' || cell.tp === 'STRING') && cell.fn === undefined)
     const cb = (value) => {
-           if(this.data[s[0]][s[1]].tp === 'NUMBER')
+      if(this.data[s[0]][s[1]].tp === 'NUMBER')
         this.data[s[0]][s[1]].vl = parseFloat(value)
       else if(this.data[s[0]][s[1]].tp === 'STRING')
         this.data[s[0]][s[1]].vl = value
@@ -280,6 +239,7 @@ export default class Spreadsheet extends Component {
       id={s[0] + '.' + s[1]}
       content={format_data(v, cell.tp, cell.stp, cell.r_dec || this.props.options.rounding)}
       editable={editable}
+      style={cell.style ? cell.style : null}
       cb={cb}
       sel_cb={(e, id) => {
         const s = id.split('.')
@@ -342,7 +302,7 @@ export default class Spreadsheet extends Component {
           <tr id={'r0l'} key={'r0l'}>
             <th className="border border-left-top" id={'c0r0_'} key={'c0r0_'}>{'/'}</th>
             {range(this.columns).map(x =>
-                <Cell key={'c' + x + '_'} id={'c' + x + '_'} className="border-top" content={this.alphabet[x]} isBorder={true} />
+                <Cell key={'c' + x + '_'} id={'c' + x + '_'} className="border-top" content={Alphabet[x]} isBorder={true} />
             )}
           </tr>
           {range(this.rows).map(x =>

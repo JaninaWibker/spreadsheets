@@ -9,7 +9,7 @@ const BorderCell = styled.th`
     background-color: rgba(248,28,229,0.35);
   }
 `
-const Cell = ({id, content, className, editable=false, isBorder=false, cb, sel_cb, handleArrowKeys, raw_data, tp, isFocused=false}) => {
+const Cell = ({id, content, className, style, editable=false, isBorder=false, cb, sel_cb, handleArrowKeys, raw_data, tp, isFocused=false}) => {
   return (
   isBorder
     ? (
@@ -26,7 +26,8 @@ const Cell = ({id, content, className, editable=false, isBorder=false, cb, sel_c
         <div
           onMouseDown={e => sel_cb ? sel_cb(e, id) : null}
           onMouseUp={e => sel_cb ? sel_cb(e, id) : null}
-          onMouseEnter={e => sel_cb ? sel_cb(e, id) : null}>
+          onMouseEnter={e => sel_cb ? sel_cb(e, id) : null}
+          style={style}>
             {!editable
               ? <span>{String(content)}</span>
               : <Editable
