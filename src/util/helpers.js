@@ -1,10 +1,13 @@
 import { inlineLexer } from '../util/inline-markdown.js'
+import { parse } from './parser/index.js'
 
 const MARKED_OPTIONS = {
   smartypants: true
 }
 
 const marked = text => inlineLexer(text, {}, MARKED_OPTIONS)
+
+const parse_formula = text => parse(text)
 
 const round = (number, decimals) => Number(Math.round(number + 'e' + decimals) + 'e-' + decimals)
 
@@ -156,6 +159,7 @@ export {
   isInViewport,
   scrollIntoViewIfNeeded,
   marked,
+  parse_formula,
   format_data,
   Alphabet,
   alphabet,

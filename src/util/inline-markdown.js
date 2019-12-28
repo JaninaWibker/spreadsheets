@@ -75,7 +75,8 @@ InlineLexer.prototype.output = function(src) {
     }
 
     // code
-    if (cap = this.rules.code.exec(src)) {
+    cap = this.rules.code.exec(src)
+    if (cap) {
       src = src.substring(cap[0].length);
       out += this.renderer.codespan(escape(cap[2].trim(), true));
       continue;

@@ -71,14 +71,14 @@ value -> _ id _                     {% ([_, fst, __]) => fst %}
 
 primitive -> boolean                {% ([fst]) => ({ type: 'boolean', val: fst.toLowerCase() === 'true' }) %}
            | number                 {% ([fst]) => ({ type: 'number', val: fst }) %}
-           | string                 {% ([fst]) => ({ type: 'string', val, fst }) %}
+           | string                 {% ([fst]) => ({ type: 'string', val: fst }) %}
 
-id -> [_a-zA-Z] [_a-zA-Z\d]:*       {% ([fst, snd]) => (console.log(fst, snd), { type: 'identifier',  val: fst + (snd ? snd.join('') : '') }) %}
+id -> [_a-zA-Z] [_a-zA-Z\d]:*       {% ([fst, snd]) => ({ type: 'identifier',  val: fst + (snd ? snd.join('') : '') }) %}
 
 # primitives
 
 # number (int, decimal, float; all without -/+ sign as this is handles prior)
-number -> [0-9]:+                                           {% ([fst]) => parseInt(fst.join((''))) %}
+number -> [0-9]:+                                           {% ([fst]) => parseInt(fst.join(''), 10) %}
         | [0-9]:+ "." ([0-9]:+):?                           {% ([fst, _, snd]) => parseFloat(fst.join('') + (snd ? '.' + snd.join('') : '')) %}
         | [0-9]:+ "." [0-9]:+ [eE] [+-]:? [0-9]:+           {% ([fst, _, snd, __, trd, fth]) => parseFloat(fst.join('') + '.' + snd.join('') + 'e' + (trd || '+') + fth.join('')) %}
         | [0-9]:+ [eE] [+-]:? [0-9]:+                       {% ([fst, _, snd, trd]) => parseFloat(fst.join('') + 'e' + (snd || '+') + trd.join('')) %}
