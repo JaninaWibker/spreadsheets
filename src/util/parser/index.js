@@ -74,4 +74,4 @@ const parse = input => {
   return parser.results
 }
 
-export { parse }export { parse, compile }
+export { parse, compile }
