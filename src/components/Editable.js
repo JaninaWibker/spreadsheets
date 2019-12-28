@@ -1,20 +1,5 @@
 import React, { Component } from 'react'
-import styled from 'styled-components'
-
-const EditableInput = styled.input`
-  display: inline-block;
-  width: calc(100% - 8px);
-  height: calc(100% - 8px);
-  font-size: 14px;
-  line-height: 15px;
-  border: none;
-  margin: 0px;
-  padding: 4px;
-
-  :focus {
-    outline: none;
-  }
-`
+import '../css/editable.css'
 
 export default class Editable extends Component {
   constructor(props) {
@@ -85,13 +70,13 @@ export default class Editable extends Component {
 
   render() {
     return this.state.editing
-        ? <EditableInput
+        ? <input className="editable-input"
             type='text'
             onChange={this.onChange}
             onBlur={this.finishEdit}
             onKeyDown={this.onKeyDown}
             defaultValue={this.state.text}
-            innerRef={el => this.el = el} />
+            ref={el => this.el = el} />
         : this.props.setInnerHTML
           ? <span
               tabIndex="0"

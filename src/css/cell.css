@@ -1,0 +1,9 @@
+th.border-cell {
+  background-color: white;
+  user-select: none;
+  
+}
+
+th.border-cell:hover {
+  background-color: rgba(248,28,229,0.35);
+}

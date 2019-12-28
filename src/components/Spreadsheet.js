@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import styled from 'styled-components'
+import '../css/spreadsheet.css'
 
 import Cell from './Cell.js'
 import { range, round, destructure, default_value, marked, format_data, isInViewport, scrollIntoViewIfNeeded, Alphabet, alphabet } from '../util/helpers.js'
@@ -17,14 +18,6 @@ const INDEX_CELL_HEIGHT_PX = INDEX_CELL_HEIGHT + 'px'
 const IDENTIFIER_CELLS = {}
 
 const Table = styled.table`
-  font-size: 14px;
-  border-spacing: 0px;
-  color: #000;
-  border-width: 0 0 1px 1px;
-  border-style: solid;
-  border-color: #cacaca;
-  table-layout: fixed;
-
   // width & height for the outer most cells with the 'index' (A, B, C...; 1, 2, 3...)
   th {
     width: ${INDEX_CELL_WIDTH_PX};
@@ -59,48 +52,6 @@ const Table = styled.table`
     width: ${CELL_WIDTH_PX};
     height: ${CELL_HEIGHT_PX};
   }
-
-  th, tr > td {
-    position: relative;
-    display: inline-block;
-    box-sizing: border-box;
-    margin: 0px;
-    padding: 0px;
-    border-width: 1px 1px 0 0;
-    border-style: solid;
-    border-color: #cacaca;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  th > div, td > div {
-    height: 100%;
-  }
-
-  th > div > span, td > div > span {
-    line-height: 15px;
-    display: inline-block;
-    width: calc(100% - 8px);
-    height: calc(100% - 8px);
-    padding: 4px;
-  }
-
-  td.selected {
-    border: 2px solid #1e6337;
-  }
-
-  td.selected span {
-    padding: 3px 3px 3px 2px;
-  }
-`
-
-const Selection = styled.div`
-  border: 2px solid rgba(248,28,229,1);
-  margin: -2px 0 0 -2px;
-  position: absolute;
-  pointer-events: none;
-  background-color: rgba(248,28,229,0.1);
 `
 
 export default class Spreadsheet extends Component {
@@ -143,7 +94,7 @@ export default class Spreadsheet extends Component {
       if(cell.indexOf('.') === -1) {
         const match = cell.match(/^([a-zA-Z])+([0-9]+)$/)
         if(match) {
-          s = [parseInt(match[2])-1, Alphabet.indexOf(match[1].toUpperCase())] // excel-like format (A1, B5, ...)
+          s = [parseInt(match[2], 10)-1, Alphabet.indexOf(match[1].toUpperCase())] // excel-like format (A1, B5, ...)
         } else {
           const identifierMatch = cell.match(/^[a-zA-Z_][a-zA-Z_0-9]*$/)
           if(identifierMatch && IDENTIFIER_CELLS[identifierMatch[0]]) {
@@ -297,7 +248,7 @@ export default class Spreadsheet extends Component {
         width: (((this.data[0].length) * CELL_WIDTH) + INDEX_CELL_WIDTH + 1) + 'px',
         height: (((this.data.length) * CELL_HEIGHT) + INDEX_CELL_HEIGHT + 1) + 'px'
       }}>
-      <Table>
+      <Table className="table">
         <tbody>
           <tr id={'r0l'} key={'r0l'}>
             <th className="border border-left-top" id={'c0r0_'} key={'c0r0_'}>{'/'}</th>
@@ -313,12 +264,12 @@ export default class Spreadsheet extends Component {
           )}
         </tbody>
       </Table>
-      <Selection innerRef={x => this.selectionElement = x} style={{
+      <div className="selection" ref={x => this.selectionElement = x} style={{
         width:  ((Math.abs(this.state.selection.start_x - this.state.selection.end_x) * CELL_WIDTH) + CELL_WIDTH) + 'px',
         height: ((Math.abs(this.state.selection.start_y - this.state.selection.end_y) * CELL_HEIGHT) + CELL_HEIGHT) + 'px',
         left: ((Math.min(this.state.selection.start_x, this.state.selection.end_x) * CELL_WIDTH) + INDEX_CELL_WIDTH) + 'px',
         top: ((Math.min(this.state.selection.start_y, this.state.selection.end_y) * CELL_HEIGHT) + INDEX_CELL_HEIGHT) + 'px',
-      }}></Selection>
+      }} />
       </div>
     )
   }

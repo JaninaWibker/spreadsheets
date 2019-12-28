@@ -1,16 +1,9 @@
 import React, { Component } from 'react'
-import styled from 'styled-components'
 import Spreadsheet from './components/Spreadsheet.js'
+import './css/index.css'
 
-import { range, createCell, createStringCell, createNumberCell, createRow, createCol, createTable } from './util/helpers.js'
+import { /*range, createCell, createEmptyCell, createStringCell, createNumberCell, createRow, createCol, createTable,*/ fillTableEmpty, fillTableIds } from './util/helpers.js'
 
-const SpreadsheetWrapper = styled.div`
-  table {
-    display: block;
-    overflow: auto;
-    white-space: nowrap;
-  }
-`
 
 class App extends Component {
   constructor(props) {
@@ -51,12 +44,12 @@ class App extends Component {
   render() {
     return (
       <div>
-        <SpreadsheetWrapper>
+        <div className="spreadsheet-wrapper">
           <Spreadsheet
             options={this.spreadsheet.options}
             data={this.spreadsheet.data}
             cb={this.spreadsheet.cb} />
-        </SpreadsheetWrapper>
+        </div>
       </div>
     )
   }

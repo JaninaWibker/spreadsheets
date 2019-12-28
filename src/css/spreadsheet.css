@@ -1,0 +1,52 @@
+table.table {
+  font-size: 14px;
+  border-spacing: 0px;
+  color: #000;
+  border-width: 0 0 1px 1px;
+  border-style: solid;
+  border-color: #cacaca;
+  table-layout: fixed;
+}
+
+table.table th, table.table tr > td {
+  position: relative;
+  display: inline-block;
+  box-sizing: border-box;
+  margin: 0px;
+  padding: 0px;
+  border-width: 1px 1px 0 0;
+  border-style: solid;
+  border-color: #cacaca;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+table.table th > div, table.table td > div {
+  height: 100%;
+}
+
+table.table th > div > span, table.table td > div > span {
+  line-height: 15px;
+  display: inline-block;
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  padding: 4px;
+}
+
+table.table td.selected {
+  border: 2px solid #1e6337;
+}
+
+table.table td.selected span {
+  padding: 3px 3px 3px 2px;
+}
+
+
+div.selection {
+  border: 2px solid rgba(248,28,229,1);
+  margin: -2px 0 0 -2px;
+  position: absolute;
+  pointer-events: none;
+  background-color: rgba(248,28,229,0.1);
+}
