@@ -2,7 +2,7 @@
 // http://github.com/Hardmath123/nearley
 (function () {
 function id(x) { return x[0]; }
-var grammar = {
+ /* eslint-disable */ var grammar = {
     Lexer: undefined,
     ParserRules: [
     {"name": "_$ebnf$1", "symbols": []},

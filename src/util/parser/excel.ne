@@ -1,3 +1,5 @@
+@{% /* eslint-disable */ %}
+
 @builtin "whitespace.ne"
 @builtin "string.ne"
 

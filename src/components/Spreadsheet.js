@@ -1,58 +1,24 @@
 import React, { Component } from 'react'
-import styled from 'styled-components'
 import '../css/spreadsheet.css'
 
 import Cell from './Cell.js'
 import { range, round, destructure, default_value, marked, format_data, isInViewport, scrollIntoViewIfNeeded, Alphabet, alphabet } from '../util/helpers.js'
 
+// constants for width/height of cells
 const CELL_WIDTH = 224
-const CELL_WIDTH_PX = CELL_WIDTH + 'px'
 const CELL_HEIGHT = 25
-const CELL_HEIGHT_PX = CELL_HEIGHT + 'px'
 
 const INDEX_CELL_WIDTH = 80
-const INDEX_CELL_WIDTH_PX = INDEX_CELL_WIDTH + 'px'
 const INDEX_CELL_HEIGHT = 25
-const INDEX_CELL_HEIGHT_PX = INDEX_CELL_HEIGHT + 'px'
+
+// settings associated css variables in order to be able to access these constants from within css
+document.documentElement.style.setProperty('--cell-width-px', CELL_WIDTH + 'px');
+document.documentElement.style.setProperty('--cell-height-px', CELL_HEIGHT + 'px');
+
+document.documentElement.style.setProperty('--index-cell-width-px', INDEX_CELL_WIDTH + 'px');
+document.documentElement.style.setProperty('--index-cell-height-px', INDEX_CELL_HEIGHT + 'px');
 
 const IDENTIFIER_CELLS = {}
-
-const Table = styled.table`
-  // width & height for the outer most cells with the 'index' (A, B, C...; 1, 2, 3...)
-  th {
-    width: ${INDEX_CELL_WIDTH_PX};
-    height: ${INDEX_CELL_HEIGHT_PX};
-  }
-
-  // the left-most and top-most cell (0/0 technically; the one with the '/').
-  // This needs to have both width & height from the index_cell constants instead of only one of them
-  th.border.border-left-top {
-    width: ${INDEX_CELL_WIDTH_PX};
-    height: ${INDEX_CELL_HEIGHT_PX};
-  }
-
-  // **top-most row**
-  // settings the width to the default cell width (because this has to fit to the normal cells)
-  // but setting the height to the index cell height (this does not have to fit to the normal cells)
-  th.border.border-top {
-    width: ${CELL_WIDTH_PX};
-    height: ${INDEX_CELL_HEIGHT_PX};
-  }
-
-  // **left-most row**
-  // setting the height to the default cell height (because this has to fit to the normal cells)
-  // but setting the width to the index cell width (this does not have t ofit to the normal cells)
-  th.border.border-left {
-    width: ${INDEX_CELL_WIDTH_PX};
-    height: ${CELL_HEIGHT_PX}
-  }
-
-  // width & height for all other cells
-  tr > td {
-    width: ${CELL_WIDTH_PX};
-    height: ${CELL_HEIGHT_PX};
-  }
-`
 
 export default class Spreadsheet extends Component {
   constructor(props) {
@@ -248,7 +214,7 @@ export default class Spreadsheet extends Component {
         width: (((this.data[0].length) * CELL_WIDTH) + INDEX_CELL_WIDTH + 1) + 'px',
         height: (((this.data.length) * CELL_HEIGHT) + INDEX_CELL_HEIGHT + 1) + 'px'
       }}>
-      <Table className="table">
+      <table className="table">
         <tbody>
           <tr id={'r0l'} key={'r0l'}>
             <th className="border border-left-top" id={'c0r0_'} key={'c0r0_'}>{'/'}</th>
@@ -263,7 +229,7 @@ export default class Spreadsheet extends Component {
             </tr>
           )}
         </tbody>
-      </Table>
+      </table>
       <div className="selection" ref={x => this.selectionElement = x} style={{
         width:  ((Math.abs(this.state.selection.start_x - this.state.selection.end_x) * CELL_WIDTH) + CELL_WIDTH) + 'px',
         height: ((Math.abs(this.state.selection.start_y - this.state.selection.end_y) * CELL_HEIGHT) + CELL_HEIGHT) + 'px',

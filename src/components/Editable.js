@@ -20,11 +20,37 @@ export default class Editable extends Component {
     this.onChange = this.onChange.bind(this)
   }
 
-  componentWillReceiveProps(nextProps) {
+  // static getDerivedStateFromProps(nextProps, prevState) {
+  //   console.log(nextProps)
+  //   const newText = nextProps.raw_data || nextProps.text || nextProps.children
+  //   if(newText !== prevState.text || prevState.editing) {
+  //     console.log('text has changed: ', newText, prevState.text)
+  //     console.log({
+  //       old_text: newText,
+  //       text: prevState.editing ? prevState.text : newText,
+  //       pretty_text: nextProps.text || nextProps.children
+  //     })
+  //     return {
+  //       old_text: newText,
+  //       text: prevState.editing ? prevState.text : newText,
+  //       pretty_text: nextProps.text || nextProps.children
+  //     }
+  //   } else {
+  //     return null
+  //   }
+  // }
+
+  UNSAFE_componentWillReceiveProps(nextProps) { // TODO: replace componentWillReceiveProps with getDerivedStateFromProps (https://hackernoon.com/replacing-componentwillreceiveprops-with-getderivedstatefromprops-c3956f7ce607)
+    // console.log(nextProps)
     //console.log(nextProps, this.state)
     const newText = nextProps.raw_data || nextProps.text || nextProps.children
     if(newText !== this.state.text || this.state.editing) {
       console.log('text has changed: ', newText, this.state.text)
+      // console.log({
+      //   old_text: newText,
+      //   text: this.state.editing ? this.state.text : newText,
+      //   pretty_text: nextProps.text || nextProps.children
+      // })
       this.setState({
         old_text: newText,
         text: this.state.editing ? this.state.text : newText,
