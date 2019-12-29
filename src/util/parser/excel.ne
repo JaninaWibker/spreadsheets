@@ -1,9 +1,13 @@
 @{% /* eslint-disable */ %}
 
-@{% const lexer = require('./lexer'); %}
+@{%
+const lexer = require('./lexer');
+
+
+%}
 @lexer lexer
 
-start -> l_or
+start -> l_or                       {% id %}
 
 # _  -> %ws:* {% () => null %}
 # __ -> %ws:+ {% () => null %}
@@ -11,7 +15,7 @@ start -> l_or
 @include "./primitives.ne"
 
 list   -> l_or                      {% id %}
-        | l_or (%comma_op l_or):+   {% ([fst, snd]) => (console.log(fst, snd), { type: 'list',  val: [fst, snd[0][1]] }) %}
+        | l_or (%comma_op l_or):+   {% ([fst, snd]) => ({ type: 'list',  val: [fst, ...snd.map(([_, item]) => item)] }) %}
         # | l_or "," list           {% ([fst, _, snd]) => ({ type: 'list',  val: [fst, ...(snd.type === 'list' ? snd.val : [snd])] }) %}
 
 l_or -> l_and                       {% id %}
@@ -79,7 +83,6 @@ parentheses -> value                {% id %}
 
 value -> id                         {% id %}
        | primitive                  {% id %}
-       | cell                       {% id %}
 
 id -> %id                           {% ([fst]) => ({ type: 'identifier',  val: fst.text }) %} # disallow any kind of digit inside of identifiers, will maybe change to something like all sequences of digits must be preceded by "_" or something
 # id -> [_a-zA-Z] [_a-zA-Z]:*       {% ([fst, snd]) => ({ type: 'identifier',  val: fst + (snd ? snd.join('') : '') }) %} # disallow any kind of digit inside of identifiers, will maybe change to something like all sequences of digits must be preceded by "_" or something

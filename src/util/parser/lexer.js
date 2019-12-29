@@ -35,6 +35,10 @@ const lexer = moo.compile({
   plus_minus: /[+-]/,
   true: 'true',
   false: 'false',
+
+  // strings
+  sqstring: /'(?:[^\\'\n]|\\'|\\(?:["\\/bfnrt]|u[a-fA-F0-9]{4}))*'/,
+  dqstring: /"(?:[^\\"\n]|\\"|\\(?:["\\/bfnrt]|u[a-fA-F0-9]{4}))*"/,
 })
 
 lexer.next = (next => () => {

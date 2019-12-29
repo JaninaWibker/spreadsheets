@@ -1,7 +1,10 @@
 import nearley from 'nearley'
-import grammar from './excel.js'
 
-const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
+import raw_excel_grammar from './excel.js'
+import raw_string_grammar from './string.js'
+
+const excel_grammar = nearley.Grammar.fromCompiled(raw_excel_grammar)
+const string_grammar = nearley.Grammar.fromCompiled(raw_string_grammar)
 
 const _compile_binary_operator = (op, [fst, snd]) => `${compile_inner(fst)} ${op} ${compile_inner(snd)}`
 
@@ -22,7 +25,6 @@ const compile_inner = ast => {
       if(ast.fn === 'if' && args.length === 2) {
         return `((${compile_inner(args[0])}) ? ${compile_inner(args[1])} : undefined)`
       } else if(ast.fn === 'if' && args.length === 3) {
-        console.log(compile_inner(args[0]), compile_inner(args[1]), compile_inner(args[2]))
         return `((${compile_inner(args[0])}) ? ${compile_inner(args[1])} : ${compile_inner(args[2])})`
       } else if(ast.fn === 'if') {
         // TODO: somehow do error reporting, maybe by just throwing an error inside the later eval'ed code
@@ -60,18 +62,35 @@ const compile_inner = ast => {
 
     case 'boolean':               return ast.val
     case 'number':                return ast.val
-    case 'string':                return ast._val // this already includes the right quotes
+    case 'string': {
+      const str = parse_string(ast.val)[0]
+      // what is returned is interpreted as javascript, meaning that it needs enclosing quotes
+      // in order to pass as a valid string, this ensures that the right quotes are picked.
+      if(ast.sub_type === 'dqstring') return `"${str}"`
+      if(ast.sub_type === 'sqstring') return `'${str}'`
+    }
     case 'identifier':            return ast.val
     default: {
+      console.log(ast)
       return `throw Error('Invalid type error')`
     }
   }
 }
 
 const parse = input => {
+  const parser = new nearley.Parser(excel_grammar);
   parser.feed(input)
-
-  return parser.results
+  return parser.finish()
 }
 
-export { parse, compile }
+const parse_string = str => {
+  const string_parser = new nearley.Parser(string_grammar)
+  string_parser.feed(str)
+  return string_parser.finish()
+}
+
+const transpile = input => compile(parse(input))
+
+window.transpile = transpile
+
+export { parse, compile, transpile }

@@ -3,34 +3,41 @@
 (function () {
 function id(x) { return x[0]; }
  /* eslint-disable */ 
- const lexer = require('./lexer'); var grammar = {
+
+const lexer = require('./lexer');
+
+
+var grammar = {
     Lexer: lexer,
     ParserRules: [
-    {"name": "start", "symbols": ["l_or"]},
+    {"name": "start", "symbols": ["l_or"], "postprocess": id},
     {"name": "primitive", "symbols": ["boolean"], "postprocess": ([fst]) => ({ type: 'boolean', val: fst })},
     {"name": "primitive", "symbols": ["number"], "postprocess": ([fst]) => ({ type: 'number', val: fst })},
+    {"name": "primitive", "symbols": ["string"], "postprocess": ([fst]) => ({ type: 'string', sub_type: fst.type, val: fst.val, _val: fst._val })},
+    {"name": "primitive", "symbols": ["cell"], "postprocess": id},
     {"name": "number", "symbols": [(lexer.has("digits") ? {type: "digits"} : digits)], "postprocess": ([fst]) => parseInt(fst, 10)},
     {"name": "number$ebnf$1$subexpression$1", "symbols": [(lexer.has("digits") ? {type: "digits"} : digits)]},
     {"name": "number$ebnf$1", "symbols": ["number$ebnf$1$subexpression$1"], "postprocess": id},
     {"name": "number$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
     {"name": "number", "symbols": [(lexer.has("digits") ? {type: "digits"} : digits), (lexer.has("dot") ? {type: "dot"} : dot), "number$ebnf$1"], "postprocess": ([fst, _, snd]) => parseFloat(fst + (snd ? '.' + snd : ''))},
-    {"name": "number$ebnf$2", "symbols": [(lexer.has("plus_minus") ? {type: "plus_minus"} : plus_minus)], "postprocess": id},
-    {"name": "number$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "number", "symbols": [(lexer.has("digits") ? {type: "digits"} : digits), (lexer.has("e") ? {type: "e"} : e), "number$ebnf$2", (lexer.has("digits") ? {type: "digits"} : digits)], "postprocess": ([fst, _, snd, trd]) => (console.log(fst, _, snd, trd), parseFloat(fst + 'e' + (snd || '+') + trd))},
+    {"name": "_exp$ebnf$1", "symbols": [(lexer.has("plus_minus") ? {type: "plus_minus"} : plus_minus)], "postprocess": id},
+    {"name": "_exp$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "_exp", "symbols": [(lexer.has("e") ? {type: "e"} : e), "_exp$ebnf$1", (lexer.has("digits") ? {type: "digits"} : digits)], "postprocess": ([_, fst, snd]) => (fst || '+') + snd},
     {"name": "boolean", "symbols": [(lexer.has("true") ? {type: "true"} : true)], "postprocess": () => true},
     {"name": "boolean", "symbols": [(lexer.has("false") ? {type: "false"} : false)], "postprocess": () => false},
-    {"name": "reference", "symbols": ["cell"], "postprocess": id},
-    {"name": "reference", "symbols": ["column"], "postprocess": ([fst]) => ({ type: 'column',  val: fst })},
-    {"name": "reference", "symbols": ["row"], "postprocess": ([fst]) => ({ type: 'row',     val: fst })},
     {"name": "cell", "symbols": ["column", "row"], "postprocess": ([fst, snd]) => ({ type: 'cell', val: [fst.val, snd.val]})},
-    {"name": "column", "symbols": [(lexer.has("characters") ? {type: "characters"} : characters)], "postprocess": ([fst]) => ({ type: 'column', val: fst })},
+    {"name": "column", "symbols": [(lexer.has("id") ? {type: "id"} : id)], "postprocess": ([fst]) => ({ type: 'column', val: fst.text })},
     {"name": "row", "symbols": [(lexer.has("digits") ? {type: "digits"} : digits)], "postprocess": ([fst]) => ({ type: 'row', val: parseInt(fst, 10) })},
+    {"name": "string", "symbols": ["dqstring"], "postprocess": ([fst]) => ({ type: 'dqstring', val: fst/*, _val: `'${fst}'`*/ })},
+    {"name": "string", "symbols": ["sqstring"], "postprocess": ([fst]) => ({ type: 'sqstring', val: fst/*, _val: `"${fst}"`*/ })},
+    {"name": "sqstring", "symbols": [(lexer.has("sqstring") ? {type: "sqstring"} : sqstring)], "postprocess": ([raw_str]) => raw_str.text},
+    {"name": "dqstring", "symbols": [(lexer.has("dqstring") ? {type: "dqstring"} : dqstring)], "postprocess": ([raw_str]) => raw_str.text},
     {"name": "list", "symbols": ["l_or"], "postprocess": id},
     {"name": "list$ebnf$1$subexpression$1", "symbols": [(lexer.has("comma_op") ? {type: "comma_op"} : comma_op), "l_or"]},
     {"name": "list$ebnf$1", "symbols": ["list$ebnf$1$subexpression$1"]},
     {"name": "list$ebnf$1$subexpression$2", "symbols": [(lexer.has("comma_op") ? {type: "comma_op"} : comma_op), "l_or"]},
     {"name": "list$ebnf$1", "symbols": ["list$ebnf$1", "list$ebnf$1$subexpression$2"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "list", "symbols": ["l_or", "list$ebnf$1"], "postprocess": ([fst, snd]) => (console.log(fst, snd), { type: 'list',  val: [fst, snd[0][1]] })},
+    {"name": "list", "symbols": ["l_or", "list$ebnf$1"], "postprocess": ([fst, snd]) => ({ type: 'list',  val: [fst, ...snd.map(([_, item]) => item)] })},
     {"name": "l_or", "symbols": ["l_and"], "postprocess": id},
     {"name": "l_or", "symbols": ["l_or", (lexer.has("or_op") ? {type: "or_op"} : or_op), "l_and"], "postprocess": ([fst, _, snd]) => ({ type: 'or',  val: [fst, snd] })},
     {"name": "l_and", "symbols": ["cond_1"], "postprocess": id},
@@ -67,7 +74,6 @@ function id(x) { return x[0]; }
     {"name": "parentheses", "symbols": [(lexer.has("lparen") ? {type: "lparen"} : lparen), "list", (lexer.has("rparen") ? {type: "rparen"} : rparen)], "postprocess": ([_, fst, __]) => ({ type: 'parentheses', val: fst })},
     {"name": "value", "symbols": ["id"], "postprocess": id},
     {"name": "value", "symbols": ["primitive"], "postprocess": id},
-    {"name": "value", "symbols": ["cell"], "postprocess": id},
     {"name": "id", "symbols": [(lexer.has("id") ? {type: "id"} : id)], "postprocess": ([fst]) => ({ type: 'identifier',  val: fst.text })}
 ]
   , ParserStart: "start"
