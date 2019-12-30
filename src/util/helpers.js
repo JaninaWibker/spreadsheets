@@ -1,5 +1,5 @@
 import { inlineLexer } from '../util/inline-markdown.js'
-import { parse } from './parser/index.js'
+import { transpile } from './parser/index.js'
 
 const MARKED_OPTIONS = {
   smartypants: true
@@ -7,7 +7,7 @@ const MARKED_OPTIONS = {
 
 const marked = text => inlineLexer(text, {}, MARKED_OPTIONS)
 
-const parse_formula = text => parse(text)
+const parse_formula = text => transpile(text)
 
 const round = (number, decimals) => Number(Math.round(number + 'e' + decimals) + 'e-' + decimals)
 
@@ -28,6 +28,8 @@ const format_data = (data, tp, stp, r_dec) => {
   if(typeof tp === 'undefined') throw Error('no type defined')
   else if(typeof data === 'undefined') data = default_value(tp) // throw Error('no data defined')
   if(tp === 'NUMBER') {
+    // this is incase something formatted as a number is actually a string, this shouldn't break the application, just ignore the formatting
+    if(typeof data != "number" && isNaN(parseFloat(data))) return data
     if(stp === 'PERCENTAGE' && r_dec) return round(data * 100, r_dec) + '%'
     if(stp === 'PERCENTAGE') return (data * 100) + '%'
     if(r_dec) return round(data, r_dec)
@@ -36,6 +38,9 @@ const format_data = (data, tp, stp, r_dec) => {
     if(stp === 'UPPERCASE') return marked(data.toUpperCase(), {}, {smartypants: true})
     if(stp === 'LOWERCASE') return marked(data.toLowerCase(), {}, {smartypants: true})
     else return marked(String(data), {}, {smartypants: true})
+  } else if(tp === 'EMPTY') {
+    // TODO: this is just here for debugging
+    return '<empty>'
   } else {
     return data
   }

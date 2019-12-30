@@ -2,7 +2,9 @@ import React, { Component } from 'react'
 import '../css/spreadsheet.css'
 
 import Cell from './Cell.js'
-import { range, round, destructure, default_value, marked, format_data, isInViewport, scrollIntoViewIfNeeded, Alphabet, alphabet } from '../util/helpers.js'
+import { range, round, destructure, default_value, marked, format_data, isInViewport, scrollIntoViewIfNeeded, Alphabet, alphabet, parse_formula } from '../util/helpers.js'
+
+import lib from '../util/stdlib.js'
 
 // constants for width/height of cells
 const CELL_WIDTH = 224
@@ -57,9 +59,11 @@ export default class Spreadsheet extends Component {
     const g = (cell, call_cell, byRender=false, rec_call_cell) => {
       //console.log(cell, call_cell, byRender, rec_call_cell)
       let s
+      // support both g('A1') and g('1.1')
       if(cell.indexOf('.') === -1) {
         const match = cell.match(/^([a-zA-Z])+([0-9]+)$/)
         if(match) {
+          // possible bug: would this fail for 'ABC213'?
           s = [parseInt(match[2], 10)-1, Alphabet.indexOf(match[1].toUpperCase())] // excel-like format (A1, B5, ...)
         } else {
           const identifierMatch = cell.match(/^[a-zA-Z_][a-zA-Z_0-9]*$/)
@@ -81,8 +85,8 @@ export default class Spreadsheet extends Component {
       const rcc = this.data[rcs[0]][rcs[1]]
 
       if(c.tp === 'EMPTY') return ''
-      if(c.tp === 'STRING') return c.vl
-      if(c.tp === 'NUMBER') {
+      // if(c.tp === 'STRING') return c.vl
+      if(c.tp === 'NUMBER' || c.tp === 'STRING') {
 
         // add 'changes'-array to the current cell including the caller of g (the previous function in the callstack, (and the cell of this function))
         // if the array does exist already, the id of the cell is just pushed to it
@@ -105,7 +109,7 @@ export default class Spreadsheet extends Component {
           if(this.data[s[0]][s[1]].visited === undefined || this.data[s[0]][s[1]].visited === false) {
             if(cell !== call_cell || byRender) {
               console.log(c.id, rcc.id)
-              this.data[s[0]][s[1]]._vl = c.fn(id => g(id, call_cell, false, c.id))
+              this.data[s[0]][s[1]]._vl = c.fn(id => g(id, call_cell, false, c.id), lib)
             } else {
               this.data[s[0]][s[1]]._vl = this.data[s[0]][s[1]].vl || default_value(this.data[s[0]][s[1]].tp)
             }
@@ -140,16 +144,30 @@ export default class Spreadsheet extends Component {
     if(cell.name) {
       IDENTIFIER_CELLS[cell.name] = [s[0], s[1]]
     }
-    const editable = ((cell.tp === 'NUMBER' || cell.tp === 'STRING') && cell.fn === undefined)
+    const editable = (cell.tp === 'NUMBER' || cell.tp === 'STRING')
+
     const cb = (value) => {
-      if(this.data[s[0]][s[1]].tp === 'NUMBER')
-        this.data[s[0]][s[1]].vl = parseFloat(value)
-      else if(this.data[s[0]][s[1]].tp === 'STRING')
+      // if formula then assign new value to .vl and compute .fn
+      if(value.startsWith('=')) {
         this.data[s[0]][s[1]].vl = value
+        this.data[s[0]][s[1]].fn = parse_formula(value.substring(1))
+      } else {
+        if(this.data[s[0]][s[1]].tp === 'NUMBER') {
+          if(isNaN(parseFloat(value))) {
+            this.data[s[0]][s[1]].vl
+          } else {
+            this.data[s[0]][s[1]].vl = parseFloat(value)
+          }
+        } else if(this.data[s[0]][s[1]].tp === 'STRING') {
+          this.data[s[0]][s[1]].vl = value
+        }
+      }
+
       this.update(cell.id)
     }
 
     const v = this.g(cell.id, cell.id, true, cell.id)
+
     return (
       <Cell
       key={s[0] + '.' + s[1]}
@@ -200,7 +218,7 @@ export default class Spreadsheet extends Component {
           if(this.selectionElement) scrollIntoViewIfNeeded(this.selectionElement)
         })
       }}
-      raw_data={v}
+      raw_data={cell.fn ? cell.vl : v}
       tp={cell.tp} />
     )
   }
@@ -214,28 +232,28 @@ export default class Spreadsheet extends Component {
         width: (((this.data[0].length) * CELL_WIDTH) + INDEX_CELL_WIDTH + 1) + 'px',
         height: (((this.data.length) * CELL_HEIGHT) + INDEX_CELL_HEIGHT + 1) + 'px'
       }}>
-      <table className="table">
-        <tbody>
-          <tr id={'r0l'} key={'r0l'}>
-            <th className="border border-left-top" id={'c0r0_'} key={'c0r0_'}>{'/'}</th>
-            {range(this.columns).map(x =>
-                <Cell key={'c' + x + '_'} id={'c' + x + '_'} className="border-top" content={Alphabet[x]} isBorder={true} />
-            )}
-          </tr>
-          {range(this.rows).map(x =>
-            <tr id={'r' + x} key={'r' + x}>
-              <Cell key={'r' + x + '_'} id={'r' + x + '_'} className="border-left" content={x+1} isBorder={true} />
-              {range(this.columns).map(y => this.render_cell(this.data[x][y]))}
+        <table className="table">
+          <tbody>
+            <tr id={'r0l'} key={'r0l'}>
+              <th className="border border-left-top" id={'c0r0_'} key={'c0r0_'}>{'/'}</th>
+              {range(this.columns).map(x =>
+                  <Cell key={'c' + x + '_'} id={'c' + x + '_'} className="border-top" content={Alphabet[x]} isBorder={true} />
+              )}
             </tr>
-          )}
-        </tbody>
-      </table>
-      <div className="selection" ref={x => this.selectionElement = x} style={{
-        width:  ((Math.abs(this.state.selection.start_x - this.state.selection.end_x) * CELL_WIDTH) + CELL_WIDTH) + 'px',
-        height: ((Math.abs(this.state.selection.start_y - this.state.selection.end_y) * CELL_HEIGHT) + CELL_HEIGHT) + 'px',
-        left: ((Math.min(this.state.selection.start_x, this.state.selection.end_x) * CELL_WIDTH) + INDEX_CELL_WIDTH) + 'px',
-        top: ((Math.min(this.state.selection.start_y, this.state.selection.end_y) * CELL_HEIGHT) + INDEX_CELL_HEIGHT) + 'px',
-      }} />
+            {range(this.rows).map(x =>
+              <tr id={'r' + x} key={'r' + x}>
+                <Cell key={'r' + x + '_'} id={'r' + x + '_'} className="border-left" content={x+1} isBorder={true} />
+                {range(this.columns).map(y => this.render_cell(this.data[x][y]))}
+              </tr>
+            )}
+          </tbody>
+        </table>
+        <div className="selection" ref={x => this.selectionElement = x} style={{
+          width:  ((Math.abs(this.state.selection.start_x - this.state.selection.end_x) * CELL_WIDTH) + CELL_WIDTH) + 'px',
+          height: ((Math.abs(this.state.selection.start_y - this.state.selection.end_y) * CELL_HEIGHT) + CELL_HEIGHT) + 'px',
+          left: ((Math.min(this.state.selection.start_x, this.state.selection.end_x) * CELL_WIDTH) + INDEX_CELL_WIDTH) + 'px',
+          top: ((Math.min(this.state.selection.start_y, this.state.selection.end_y) * CELL_HEIGHT) + INDEX_CELL_HEIGHT) + 'px',
+        }} />
       </div>
     )
   }

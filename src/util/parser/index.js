@@ -1,3 +1,5 @@
+import { Alphabet } from '../helpers.js'
+
 import nearley from 'nearley'
 
 import raw_excel_grammar from './excel.js'
@@ -55,6 +57,7 @@ const compile_inner = ast => {
 
     case 'range': {
       console.log(ast)
+      // maybe transpile this to an array?
       return '<range>'
     }
 
@@ -69,7 +72,8 @@ const compile_inner = ast => {
       if(ast.sub_type === 'dqstring') return `"${str}"`
       if(ast.sub_type === 'sqstring') return `'${str}'`
     }
-    case 'identifier':            return ast.val
+    case 'identifier':            return `g('${ast.val}')`
+    case 'cell':                  return `g('${parseInt(ast.val[1], 10)-1}.${Alphabet.indexOf(ast.val[0].toUpperCase())}')` // TODO: this probably has the same problem as the code in Spreadsheet.js (g), what about 'AAA' instead of just a single 'A'?, probably have to split the characters and compute the index using that
     default: {
       console.log(ast)
       return `throw Error('Invalid type error')`
