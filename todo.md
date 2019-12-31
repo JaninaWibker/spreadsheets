@@ -9,3 +9,4 @@ what is still left to do:
 - add more keyboard shortcuts (like backspace for a selection / single cell for example)
 - add transpiling for range operator (maybe just use an array for this?)
 - compute/parse all formulas before rendering
+- run the parsing in a webworker, this way the main thread does not crash when the parser is stuck in an infinite loop (and the main thread can potentially time out the worker after x milliseconds)

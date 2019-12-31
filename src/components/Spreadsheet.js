@@ -85,7 +85,7 @@ export default class Spreadsheet extends Component {
       const rcc = this.data[rcs[0]][rcs[1]]
 
       if(c.tp === 'EMPTY') return ''
-      // if(c.tp === 'STRING') return c.vl
+      // if(c.tp === 'STRING') return c.vl // also allow functions that return strings
       if(c.tp === 'NUMBER' || c.tp === 'STRING') {
 
         // add 'changes'-array to the current cell including the caller of g (the previous function in the callstack, (and the cell of this function))
@@ -145,6 +145,9 @@ export default class Spreadsheet extends Component {
       IDENTIFIER_CELLS[cell.name] = [s[0], s[1]]
     }
     const editable = (cell.tp === 'NUMBER' || cell.tp === 'STRING')
+
+    if(cell.vl && (typeof(cell.vl) === 'string') && cell.vl.startsWith('=') && !cell.fn) cell.fn = parse_formula(cell.vl.substring(1))
+    
 
     const cb = (value) => {
       // if formula then assign new value to .vl and compute .fn
