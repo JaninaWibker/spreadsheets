@@ -29,7 +29,7 @@ const format_data = (data, tp, stp, r_dec) => {
   else if(typeof data === 'undefined') data = default_value(tp) // throw Error('no data defined')
   if(tp === 'NUMBER') {
     // this is incase something formatted as a number is actually a string, this shouldn't break the application, just ignore the formatting
-    if(typeof data != "number" && isNaN(parseFloat(data))) return data
+    if(typeof data !== "number" && isNaN(parseFloat(data))) return data
     if(stp === 'PERCENTAGE' && r_dec) return round(data * 100, r_dec) + '%'
     if(stp === 'PERCENTAGE') return (data * 100) + '%'
     if(r_dec) return round(data, r_dec)

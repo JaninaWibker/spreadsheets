@@ -1,12 +1,12 @@
 what is still left to do:
-- better error handling
-- pass all the identifiers through the g function
-- when the input of a cell starts with "=" treat is as a formula
-- blurry the lines between "STRING", "NUMBER", and "EMPTY" cells (maybe even completely remove them or just make it so that they can switch freely from one to the other)
-- maybe refactor Spreadsheet.js a bit
-- allow functions / formulas that return strings (currently only "NUMBER"-cells are supported by the g function)
-- write standard library for the formulas
-- add more keyboard shortcuts (like backspace for a selection / single cell for example)
-- add transpiling for range operator (maybe just use an array for this?)
-- compute/parse all formulas before rendering
-- run the parsing in a webworker, this way the main thread does not crash when the parser is stuck in an infinite loop (and the main thread can potentially time out the worker after x milliseconds)
+- [x] pass all the identifiers through the g function or handle them specially
+- [x] when the input of a cell starts with "=" treat is as a formula
+- [x] allow functions / formulas that return strings (currently only "NUMBER"-cells are supported by the g function)
+- [x] compute/parse all formulas before rendering
+- [ ] better error handling
+- [ ] blurry the lines between "STRING", "NUMBER", and "EMPTY" cells (maybe even completely remove them or just make it so that they can switch freely from one to the other)
+- [ ] maybe refactor Spreadsheet.js a bit
+- [ ] write standard library for the formulas
+- [ ] add more keyboard shortcuts (like backspace for a selection / single cell for example)
+- [ ] add transpiling for range operator (maybe just use an array for this?)
+- [ ] run the parsing in a webworker, this way the main thread does not crash when the parser is stuck in an infinite loop (and the main thread can potentially time out the worker after x milliseconds)

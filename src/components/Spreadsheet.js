@@ -84,6 +84,11 @@ export default class Spreadsheet extends Component {
       const rcs = rec_call_cell.split('.')
       const rcc = this.data[rcs[0]][rcs[1]]
 
+      if(c === undefined) {
+        console.log(cell, call_cell, c)
+        return '<error>'
+      }
+
       if(c.tp === 'EMPTY') return ''
       // if(c.tp === 'STRING') return c.vl // also allow functions that return strings
       if(c.tp === 'NUMBER' || c.tp === 'STRING') {

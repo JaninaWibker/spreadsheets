@@ -56,9 +56,28 @@ const compile_inner = ast => {
     case 'unary_minus':           return _compile_unary_operator('-', ast.val)
 
     case 'range': {
-      console.log(ast)
-      // maybe transpile this to an array?
-      return '<range>'
+      const x1 = Alphabet.indexOf(ast.val[0].val[0].toUpperCase()) // TODO: same problem as before, what about "AAA" or other things with multiple characters
+      const x2 = Alphabet.indexOf(ast.val[1].val[0].toUpperCase())
+      const y1 = ast.val[0].val[1] - 1
+      const y2 = ast.val[1].val[1] - 1
+
+      const tlx = Math.min(x1, x2)
+      const tly = Math.min(y1, y2)
+      const brx = Math.max(x1, x2)
+      const bry = Math.max(y1, y2)
+
+      const results = []
+
+      for(let j = tlx; j <= brx; j++) {
+        for(let k = tly; k <= bry; k++) {
+          console.log('cell:', j, k)
+          results.push(`g('${k}.${j}')`)
+        }
+      }
+
+      console.log(results)
+
+      return `[${results.join(', ')}]`
     }
 
     case 'parenthesis':           return `(${compile_inner(ast.val)})`
