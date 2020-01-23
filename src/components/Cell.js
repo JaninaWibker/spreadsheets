@@ -1,26 +1,19 @@
 import React from 'react'
 import Editable from './Editable.js'
-import styled from 'styled-components'
+import '../css/cell.css'
 
-const BorderCell = styled.th`
-  background-color: white;
-  user-select: none;
-  :hover {
-    background-color: rgba(248,28,229,0.35);
-  }
-`
 const Cell = ({id, content, className, style, editable=false, isBorder=false, cb, sel_cb, handleArrowKeys, raw_data, tp, isFocused=false}) => {
   return (
   isBorder
     ? (
-      <BorderCell
-        className={'border' + (className ? ' ' + className : '')}
+      <th
+        className={'border-cell border' + (className ? ' ' + className : '')}
         onMouseDown={e => console.log(e.target, id)}
         onMouseUp={e => console.log(e.target, id)} id={id}>
           <div>
             <span>{content}</span>
           </div>
-      </BorderCell>
+      </th>
     ) : (
       <td id={id}>
         <div

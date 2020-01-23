@@ -1,0 +1,87 @@
+table.table {
+  font-size: 14px;
+  border-spacing: 0px;
+  color: #000;
+  border-width: 0 0 1px 1px;
+  border-style: solid;
+  border-color: #cacaca;
+  table-layout: fixed;
+}
+
+table.table th, table.table tr > td {
+  position: relative;
+  display: inline-block;
+  box-sizing: border-box;
+  margin: 0px;
+  padding: 0px;
+  border-width: 1px 1px 0 0;
+  border-style: solid;
+  border-color: #cacaca;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+table.table th > div, table.table td > div {
+  height: 100%;
+}
+
+table.table th > div > span, table.table td > div > span {
+  line-height: 15px;
+  display: inline-block;
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  padding: 4px;
+}
+
+table.table td.selected {
+  border: 2px solid #1e6337;
+}
+
+table.table td.selected span {
+  padding: 3px 3px 3px 2px;
+}
+
+
+/*  width & height for the outer most cells with the 'index' (A, B, C...; 1, 2, 3...) */
+table.table th {
+  width: var(--index-cell-width-px);
+  height: var(--index-cell-height-px);
+}
+
+/*  the left-most and top-most cell (0/0 technically; the one with the '/').
+    This needs to have both width & height from the index_cell constants instead of only one of them */
+table.table th.border.border-left-top {
+  width: var(--index-cell-width-px);
+  height: var(--index-cell-height-px);
+}
+
+/*  **top-most row**
+    settings the width to the default cell width (because this has to fit to the normal cells)
+    but setting the height to the index cell height (this does not have to fit to the normal cells) */
+table.table th.border.border-top {
+  width: var(--cell-width-px);
+  height: var(--index-cell-height-px);
+}
+
+/*  **left-most row**
+    setting the height to the default cell height (because this has to fit to the normal cells)
+    but setting the width to the index cell width (this does not have t ofit to the normal cells) */
+table.table th.border.border-left {
+  width: var(--index-cell-width-px);
+  height: var(--cell-height-px);
+}
+
+/* width & height for all other cells */
+table.table tr > td {
+  width: var(--cell-width-px);
+  height: var(--cell-height-px);
+}
+
+div.selection {
+  border: 2px solid rgba(248,28,229,1);
+  margin: -2px 0 0 -2px;
+  position: absolute;
+  pointer-events: none;
+  background-color: rgba(248,28,229,0.1);
+}

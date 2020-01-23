@@ -1,0 +1,5 @@
+div.spreadsheet-wrapper table {
+  display: block;
+  overflow: auto;
+  white-space: nowrap;
+}

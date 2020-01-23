@@ -1,107 +1,26 @@
 import React, { Component } from 'react'
-import styled from 'styled-components'
+import '../css/spreadsheet.css'
 
 import Cell from './Cell.js'
-import { range, round, destructure, default_value, marked, format_data, isInViewport, scrollIntoViewIfNeeded, Alphabet, alphabet } from '../util/helpers.js'
+import { range, round, destructure, default_value, marked, format_data, isInViewport, scrollIntoViewIfNeeded, Alphabet, alphabet, parse_formula } from '../util/helpers.js'
 
+import lib from '../util/stdlib.js'
+
+// constants for width/height of cells
 const CELL_WIDTH = 224
-const CELL_WIDTH_PX = CELL_WIDTH + 'px'
 const CELL_HEIGHT = 25
-const CELL_HEIGHT_PX = CELL_HEIGHT + 'px'
 
 const INDEX_CELL_WIDTH = 80
-const INDEX_CELL_WIDTH_PX = INDEX_CELL_WIDTH + 'px'
 const INDEX_CELL_HEIGHT = 25
-const INDEX_CELL_HEIGHT_PX = INDEX_CELL_HEIGHT + 'px'
+
+// settings associated css variables in order to be able to access these constants from within css
+document.documentElement.style.setProperty('--cell-width-px', CELL_WIDTH + 'px');
+document.documentElement.style.setProperty('--cell-height-px', CELL_HEIGHT + 'px');
+
+document.documentElement.style.setProperty('--index-cell-width-px', INDEX_CELL_WIDTH + 'px');
+document.documentElement.style.setProperty('--index-cell-height-px', INDEX_CELL_HEIGHT + 'px');
 
 const IDENTIFIER_CELLS = {}
-
-const Table = styled.table`
-  font-size: 14px;
-  border-spacing: 0px;
-  color: #000;
-  border-width: 0 0 1px 1px;
-  border-style: solid;
-  border-color: #cacaca;
-  table-layout: fixed;
-
-  // width & height for the outer most cells with the 'index' (A, B, C...; 1, 2, 3...)
-  th {
-    width: ${INDEX_CELL_WIDTH_PX};
-    height: ${INDEX_CELL_HEIGHT_PX};
-  }
-
-  // the left-most and top-most cell (0/0 technically; the one with the '/').
-  // This needs to have both width & height from the index_cell constants instead of only one of them
-  th.border.border-left-top {
-    width: ${INDEX_CELL_WIDTH_PX};
-    height: ${INDEX_CELL_HEIGHT_PX};
-  }
-
-  // **top-most row**
-  // settings the width to the default cell width (because this has to fit to the normal cells)
-  // but setting the height to the index cell height (this does not have to fit to the normal cells)
-  th.border.border-top {
-    width: ${CELL_WIDTH_PX};
-    height: ${INDEX_CELL_HEIGHT_PX};
-  }
-
-  // **left-most row**
-  // setting the height to the default cell height (because this has to fit to the normal cells)
-  // but setting the width to the index cell width (this does not have t ofit to the normal cells)
-  th.border.border-left {
-    width: ${INDEX_CELL_WIDTH_PX};
-    height: ${CELL_HEIGHT_PX}
-  }
-
-  // width & height for all other cells
-  tr > td {
-    width: ${CELL_WIDTH_PX};
-    height: ${CELL_HEIGHT_PX};
-  }
-
-  th, tr > td {
-    position: relative;
-    display: inline-block;
-    box-sizing: border-box;
-    margin: 0px;
-    padding: 0px;
-    border-width: 1px 1px 0 0;
-    border-style: solid;
-    border-color: #cacaca;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  th > div, td > div {
-    height: 100%;
-  }
-
-  th > div > span, td > div > span {
-    line-height: 15px;
-    display: inline-block;
-    width: calc(100% - 8px);
-    height: calc(100% - 8px);
-    padding: 4px;
-  }
-
-  td.selected {
-    border: 2px solid #1e6337;
-  }
-
-  td.selected span {
-    padding: 3px 3px 3px 2px;
-  }
-`
-
-const Selection = styled.div`
-  border: 2px solid rgba(248,28,229,1);
-  margin: -2px 0 0 -2px;
-  position: absolute;
-  pointer-events: none;
-  background-color: rgba(248,28,229,0.1);
-`
 
 export default class Spreadsheet extends Component {
   constructor(props) {
@@ -140,10 +59,12 @@ export default class Spreadsheet extends Component {
     const g = (cell, call_cell, byRender=false, rec_call_cell) => {
       //console.log(cell, call_cell, byRender, rec_call_cell)
       let s
+      // support both g('A1') and g('1.1')
       if(cell.indexOf('.') === -1) {
         const match = cell.match(/^([a-zA-Z])+([0-9]+)$/)
         if(match) {
-          s = [parseInt(match[2])-1, Alphabet.indexOf(match[1].toUpperCase())] // excel-like format (A1, B5, ...)
+          // possible bug: would this fail for 'ABC213'?
+          s = [parseInt(match[2], 10)-1, Alphabet.indexOf(match[1].toUpperCase())] // excel-like format (A1, B5, ...)
         } else {
           const identifierMatch = cell.match(/^[a-zA-Z_][a-zA-Z_0-9]*$/)
           if(identifierMatch && IDENTIFIER_CELLS[identifierMatch[0]]) {
@@ -163,9 +84,14 @@ export default class Spreadsheet extends Component {
       const rcs = rec_call_cell.split('.')
       const rcc = this.data[rcs[0]][rcs[1]]
 
+      if(c === undefined) {
+        console.log(cell, call_cell, c)
+        return '<error>'
+      }
+
       if(c.tp === 'EMPTY') return ''
-      if(c.tp === 'STRING') return c.vl
-      if(c.tp === 'NUMBER') {
+      // if(c.tp === 'STRING') return c.vl // also allow functions that return strings
+      if(c.tp === 'NUMBER' || c.tp === 'STRING') {
 
         // add 'changes'-array to the current cell including the caller of g (the previous function in the callstack, (and the cell of this function))
         // if the array does exist already, the id of the cell is just pushed to it
@@ -188,7 +114,7 @@ export default class Spreadsheet extends Component {
           if(this.data[s[0]][s[1]].visited === undefined || this.data[s[0]][s[1]].visited === false) {
             if(cell !== call_cell || byRender) {
               console.log(c.id, rcc.id)
-              this.data[s[0]][s[1]]._vl = c.fn(id => g(id, call_cell, false, c.id))
+              this.data[s[0]][s[1]]._vl = c.fn(id => g(id, call_cell, false, c.id), lib)
             } else {
               this.data[s[0]][s[1]]._vl = this.data[s[0]][s[1]].vl || default_value(this.data[s[0]][s[1]].tp)
             }
@@ -223,16 +149,33 @@ export default class Spreadsheet extends Component {
     if(cell.name) {
       IDENTIFIER_CELLS[cell.name] = [s[0], s[1]]
     }
-    const editable = ((cell.tp === 'NUMBER' || cell.tp === 'STRING') && cell.fn === undefined)
+    const editable = (cell.tp === 'NUMBER' || cell.tp === 'STRING')
+
+    if(cell.vl && (typeof(cell.vl) === 'string') && cell.vl.startsWith('=') && !cell.fn) cell.fn = parse_formula(cell.vl.substring(1))
+    
+
     const cb = (value) => {
-      if(this.data[s[0]][s[1]].tp === 'NUMBER')
-        this.data[s[0]][s[1]].vl = parseFloat(value)
-      else if(this.data[s[0]][s[1]].tp === 'STRING')
+      // if formula then assign new value to .vl and compute .fn
+      if(value.startsWith('=')) {
         this.data[s[0]][s[1]].vl = value
+        this.data[s[0]][s[1]].fn = parse_formula(value.substring(1))
+      } else {
+        if(this.data[s[0]][s[1]].tp === 'NUMBER') {
+          if(isNaN(parseFloat(value))) {
+            this.data[s[0]][s[1]].vl
+          } else {
+            this.data[s[0]][s[1]].vl = parseFloat(value)
+          }
+        } else if(this.data[s[0]][s[1]].tp === 'STRING') {
+          this.data[s[0]][s[1]].vl = value
+        }
+      }
+
       this.update(cell.id)
     }
 
     const v = this.g(cell.id, cell.id, true, cell.id)
+
     return (
       <Cell
       key={s[0] + '.' + s[1]}
@@ -283,7 +226,7 @@ export default class Spreadsheet extends Component {
           if(this.selectionElement) scrollIntoViewIfNeeded(this.selectionElement)
         })
       }}
-      raw_data={v}
+      raw_data={cell.fn ? cell.vl : v}
       tp={cell.tp} />
     )
   }
@@ -297,28 +240,28 @@ export default class Spreadsheet extends Component {
         width: (((this.data[0].length) * CELL_WIDTH) + INDEX_CELL_WIDTH + 1) + 'px',
         height: (((this.data.length) * CELL_HEIGHT) + INDEX_CELL_HEIGHT + 1) + 'px'
       }}>
-      <Table>
-        <tbody>
-          <tr id={'r0l'} key={'r0l'}>
-            <th className="border border-left-top" id={'c0r0_'} key={'c0r0_'}>{'/'}</th>
-            {range(this.columns).map(x =>
-                <Cell key={'c' + x + '_'} id={'c' + x + '_'} className="border-top" content={Alphabet[x]} isBorder={true} />
-            )}
-          </tr>
-          {range(this.rows).map(x =>
-            <tr id={'r' + x} key={'r' + x}>
-              <Cell key={'r' + x + '_'} id={'r' + x + '_'} className="border-left" content={x+1} isBorder={true} />
-              {range(this.columns).map(y => this.render_cell(this.data[x][y]))}
+        <table className="table">
+          <tbody>
+            <tr id={'r0l'} key={'r0l'}>
+              <th className="border border-left-top" id={'c0r0_'} key={'c0r0_'}>{'/'}</th>
+              {range(this.columns).map(x =>
+                  <Cell key={'c' + x + '_'} id={'c' + x + '_'} className="border-top" content={Alphabet[x]} isBorder={true} />
+              )}
             </tr>
-          )}
-        </tbody>
-      </Table>
-      <Selection innerRef={x => this.selectionElement = x} style={{
-        width:  ((Math.abs(this.state.selection.start_x - this.state.selection.end_x) * CELL_WIDTH) + CELL_WIDTH) + 'px',
-        height: ((Math.abs(this.state.selection.start_y - this.state.selection.end_y) * CELL_HEIGHT) + CELL_HEIGHT) + 'px',
-        left: ((Math.min(this.state.selection.start_x, this.state.selection.end_x) * CELL_WIDTH) + INDEX_CELL_WIDTH) + 'px',
-        top: ((Math.min(this.state.selection.start_y, this.state.selection.end_y) * CELL_HEIGHT) + INDEX_CELL_HEIGHT) + 'px',
-      }}></Selection>
+            {range(this.rows).map(x =>
+              <tr id={'r' + x} key={'r' + x}>
+                <Cell key={'r' + x + '_'} id={'r' + x + '_'} className="border-left" content={x+1} isBorder={true} />
+                {range(this.columns).map(y => this.render_cell(this.data[x][y]))}
+              </tr>
+            )}
+          </tbody>
+        </table>
+        <div className="selection" ref={x => this.selectionElement = x} style={{
+          width:  ((Math.abs(this.state.selection.start_x - this.state.selection.end_x) * CELL_WIDTH) + CELL_WIDTH) + 'px',
+          height: ((Math.abs(this.state.selection.start_y - this.state.selection.end_y) * CELL_HEIGHT) + CELL_HEIGHT) + 'px',
+          left: ((Math.min(this.state.selection.start_x, this.state.selection.end_x) * CELL_WIDTH) + INDEX_CELL_WIDTH) + 'px',
+          top: ((Math.min(this.state.selection.start_y, this.state.selection.end_y) * CELL_HEIGHT) + INDEX_CELL_HEIGHT) + 'px',
+        }} />
       </div>
     )
   }

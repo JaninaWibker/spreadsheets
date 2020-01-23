@@ -1,0 +1,14 @@
+input.editable-input {
+  display: inline-block;
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  font-size: 14px;
+  line-height: 15px;
+  border: none;
+  margin: 0px;
+  padding: 4px;
+}
+
+input.editable-input:focus {
+  outline: none;
+}
