@@ -2,7 +2,7 @@
 
 Spreadsheets is a small simple (**WIP**) spreadsheet application web app thingy.
 
-![Demo Gif](./spreadsheets-demo.gif)
+![Demo Gif](./spreadsheets-demo-2.gif)
 
 ## Features
 
