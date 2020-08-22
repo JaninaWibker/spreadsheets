@@ -49,7 +49,7 @@ const lib = {
   sumif: format_arguments.bind(this, arr => {
     let sum = 0
     for(let i = 0; i < arr.length; i++)
-      if(true) // somehow add the conditions here
+      if(true) // TODO: somehow add the conditions here
         sum += arr[i]
     return sum
   }),
@@ -57,7 +57,7 @@ const lib = {
   countif: format_arguments.bind(this, arr => {
     let count = 0
     for(let i = 0; i < arr.length; i++)
-      if(true) // somehow add the conditions here
+      if(true) // TODO: somehow add the conditions here
         count += 1
     return count
   }),

@@ -1,0 +1,11 @@
+---
+number.rounding: 2
+cell.width: 224
+cell.height: 25
+index_cell.width: 80
+index_cell.height: 25
+---
+[{ "tp": "S", "vl": "**test**", "style": { "fontFamily": "Menlo" } }, { "tp": "N", "vl": 5, "name": "thisIsSomeName" } ]
+[{ "tp": "S", "vl": "`123`: blub" }, { "tp": "N", "vl": "=A1:A1" } ]
+[ { "tp": "S", "vl": "=pi" }, { "tp": "E" } ]
+[ { "tp": "E" }, { "tp": "S", "vl": "=IF(B1 > 5, \"true\", \"false\")", "name": "blub" } ]

@@ -77,7 +77,7 @@ const destructure = (obj, template) => {
 
 // create specific cells, cells in general, whole Table, create Rows and Columns, fill in missing Ids
 
-const createCell = (id, tp='STRING', vl='', stp, fn) => ({ id, tp, stp, vl, fn })
+const createCell = (id, tp='STRING', vl=tp === 'EMPTY' ? undefined : '', stp, fn) => ({ id, tp, stp, vl, fn })
 
 const createEmptyCell = (id) => createCell(id, 'EMPTY')
 const createStringCell = (id, vl, fn, stp) => createCell(id, 'STRING', vl, stp, fn)

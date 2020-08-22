@@ -26,11 +26,12 @@ export default class Spreadsheet extends Component {
   constructor(props) {
     super(props)
 
-    this.data = this.props.data
+    this.data    = this.props.data
+    this.name    = this.props.name
     this.columns = this.data[0].length
-    this.rows = this.data.length
+    this.rows    = this.data.length
 
-    this.update = this.update.bind(this)
+    this.update  = this.update.bind(this)
     this._update = this._update.bind(this)
 
     this.props.cb(this.data, this.update)
@@ -56,6 +57,7 @@ export default class Spreadsheet extends Component {
       }
     }
 
+    // g stands for get and was used directly before a proper excel syntax parser was implemented, that is why the name is so short
     const g = (cell, call_cell, byRender=false, rec_call_cell) => {
       //console.log(cell, call_cell, byRender, rec_call_cell)
       let s
@@ -128,6 +130,19 @@ export default class Spreadsheet extends Component {
     }
 
     this.g = g.bind(this)
+  }
+
+  componentDidUpdate(prevProps) {
+    if(this.name !== this.props.name) {
+      this.name    = this.props.name
+      this.data    = this.props.data
+      this.columns = this.data[0].length
+      this.rows    = this.data.length
+
+      this.props.cb(this.data, this.update)
+
+      this.forceUpdate()
+    }
   }
 
   _update(cell) {
