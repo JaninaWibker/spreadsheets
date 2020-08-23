@@ -16,6 +16,7 @@ const compile = ast => {
   // I know this is not considered good code, but using eval is pretty much the only choice here,
   // the other choice would be to completely interpret the ast everytime which is also not good
   // for performance reasons, better to just transpile to javascript once and be done with it.
+  /* eslint-disable-next-line */
   return window.eval(`(g, lib) => ${compile_inner(ast[0])}`)
 }
 
@@ -49,7 +50,7 @@ const compile_inner = ast => {
     case 'multiplication':        return _compile_binary_operator('*',   ast.val)
     case 'division':              return _compile_binary_operator('/',   ast.val)
     case 'modulo':                return _compile_binary_operator('%',   ast.val)
-    case 'power':                 return `lib.pow(${ast.val[0], ast.val[1]})` // TODO: add lib.pow (Math.pow)
+    case 'power':                 return `lib.pow(${ast.val[0]}, ${ast.val[1]})` // TODO: add lib.pow (Math.pow)
 
     case 'unary_negation':        return _compile_unary_operator('!', ast.val)
     case 'unary_plus':            return _compile_unary_operator('+', ast.val)
@@ -90,7 +91,7 @@ const compile_inner = ast => {
       // in order to pass as a valid string, this ensures that the right quotes are picked.
       if(ast.sub_type === 'dqstring') return `"${str}"`
       if(ast.sub_type === 'sqstring') return `'${str}'`
-    }
+    } break
     case 'identifier': {
       switch(ast.val.toLowerCase()) {
         case 'pi':  return `lib.pi`

@@ -5,7 +5,7 @@ import './css/index.css'
 import { /*range, createCell, createEmptyCell,*/ createStringCell, /*createNumberCell, createRow, createCol,*/ createTable, fillTableEmpty, fillTableIds } from './util/helpers.js'
 import parse_file from './util/file-parser.js'
 
-const file_demo_spreadsheet = `
+const file_demo_spreadsheet = parse_file(`
 ---
 number.rounding: 2
 cell.width: 224
@@ -16,7 +16,7 @@ index_cell.height: 25
 [{ "tp": "S", "vl": "**test2**", "style": { "fontFamily": "Menlo" } }, { "tp": "N", "vl": 5, "name": "thisIsSomeName" } ]
 [{ "tp": "S", "vl": "\`123\`: blub" }, { "tp": "N", "vl": "=A1:A1" } ]
 [ { "tp": "S", "vl": "=pi" }, { "tp": "E" } ]
-[ { "tp": "E" }, { "tp": "S", "vl": "=IF(B1 > 5, \\"true\\", \\"false\\")", "name": "blub" } ]`
+[ { "tp": "E" }, { "tp": "S", "vl": "=IF(B1 > 5, \\"true\\", \\"false\\")", "name": "blub" } ]`)
 
 const demo_spreadsheet = {
   options: {
@@ -69,7 +69,7 @@ class App extends Component {
             name={this.state.spreadsheet.name}
             cb={this.state.cb} />
         </div>
-        <button onClick={() => this.loadSpreadsheet(...Object.values(parse_file(file_demo_spreadsheet)), 'file_demo_spreadsheet')}>load other spreadsheet</button>
+        <button onClick={() => this.loadSpreadsheet(...Object.values(file_demo_spreadsheet), 'file_demo_spreadsheet')}>load other spreadsheet</button>
       </div>
     )
   }

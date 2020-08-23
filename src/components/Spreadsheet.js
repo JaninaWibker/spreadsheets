@@ -2,7 +2,7 @@ import React, { Component } from 'react'
 import '../css/spreadsheet.css'
 
 import Cell from './Cell.js'
-import { range, round, destructure, default_value, marked, format_data, isInViewport, scrollIntoViewIfNeeded, Alphabet, alphabet, parse_formula } from '../util/helpers.js'
+import { range, destructure, default_value, format_data, scrollIntoViewIfNeeded, Alphabet, parse_formula } from '../util/helpers.js'
 
 import lib from '../util/stdlib.js'
 
@@ -177,7 +177,7 @@ export default class Spreadsheet extends Component {
       } else {
         if(this.data[s[0]][s[1]].tp === 'NUMBER') {
           if(isNaN(parseFloat(value))) {
-            this.data[s[0]][s[1]].vl
+            // this.data[s[0]][s[1]].vl // TODO: what is this even used for?
           } else {
             this.data[s[0]][s[1]].vl = parseFloat(value)
           }

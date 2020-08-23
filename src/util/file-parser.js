@@ -49,7 +49,7 @@ const parse_data = (str) => str
 
 const parse_file = (str) => {
 
-  const [ _sep1, config, _sep2, ...rest_arr ] = str.split(/(\s?---\s?)/g).filter(x => !!x)
+  const [ , config, , ...rest_arr ] = str.split(/(\s?---\s?)/g).filter(x => !!x)
 
   const rest = rest_arr.join("")
 
