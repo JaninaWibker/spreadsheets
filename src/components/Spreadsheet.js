@@ -1,7 +1,8 @@
 import React, { Component } from 'react'
 import '../css/spreadsheet.css'
 
-import Cell from './Cell.js'
+import { BorderCell, Cell } from './Cell.js'
+import Selection from './Selection.js'
 import { range, destructure, default_value, format_data, scrollIntoViewIfNeeded, Alphabet, parse_formula } from '../util/helpers.js'
 
 import lib from '../util/stdlib.js'
@@ -259,24 +260,25 @@ export default class Spreadsheet extends Component {
           <tbody>
             <tr id={'r0l'} key={'r0l'}>
               <th className="border border-left-top" id={'c0r0_'} key={'c0r0_'}>{'/'}</th>
-              {range(this.columns).map(x =>
-                  <Cell key={'c' + x + '_'} id={'c' + x + '_'} className="border-top" content={Alphabet[x]} isBorder={true} />
+              {range(this.columns).map(col_num =>
+                  <BorderCell key={'c' + col_num + '_'} id={'c' + col_num + '_'} className="border-top" content={Alphabet[col_num]} />
               )}
             </tr>
-            {range(this.rows).map(x =>
-              <tr id={'r' + x} key={'r' + x}>
-                <Cell key={'r' + x + '_'} id={'r' + x + '_'} className="border-left" content={x+1} isBorder={true} />
-                {range(this.columns).map(y => this.render_cell(this.data[x][y]))}
+            {range(this.rows).map(row_num =>
+              <tr id={'r' + row_num} key={'r' + row_num}>
+                <BorderCell key={'r' + row_num + '_'} id={'r' + row_num + '_'} className="border-left" content={row_num+1} />
+                {range(this.columns).map(y => this.render_cell(this.data[row_num][y]))}
               </tr>
             )}
           </tbody>
         </table>
-        <div className="selection" ref={x => this.selectionElement = x} style={{
-          width:  ((Math.abs(this.state.selection.start_x - this.state.selection.end_x) * CELL_WIDTH) + CELL_WIDTH) + 'px',
-          height: ((Math.abs(this.state.selection.start_y - this.state.selection.end_y) * CELL_HEIGHT) + CELL_HEIGHT) + 'px',
-          left: ((Math.min(this.state.selection.start_x, this.state.selection.end_x) * CELL_WIDTH) + INDEX_CELL_WIDTH) + 'px',
-          top: ((Math.min(this.state.selection.start_y, this.state.selection.end_y) * CELL_HEIGHT) + INDEX_CELL_HEIGHT) + 'px',
-        }} />
+        <Selection
+          start={{ x: this.state.selection.start_x, y: this.state.selection.start_y }}
+          end=  {{ x: this.state.selection.end_x,   y: this.state.selection.end_y }}
+          constants={{
+            cell_width:       CELL_WIDTH,       cell_height:       CELL_HEIGHT,
+            index_cell_width: INDEX_CELL_WIDTH, index_cell_height: INDEX_CELL_HEIGHT}}
+        />
       </div>
     )
   }
