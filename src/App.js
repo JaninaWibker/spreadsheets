@@ -15,7 +15,7 @@ index_cell.height: 25
 ---
 [{ "tp": "S", "vl": "**test2**", "style": { "fontFamily": "Menlo" } }, { "tp": "N", "vl": 5, "name": "thisIsSomeName" } ]
 [{ "tp": "S", "vl": "\`123\`: blub" }, { "tp": "N", "vl": "=A1:A1" } ]
-[ { "tp": "S", "vl": "=pi" }, { "tp": "E" } ]
+[ { "tp": "S", "vl": "=pi" }, { "tp": "N", "vl": "=thisIsSomeName" } ]
 [ { "tp": "E" }, { "tp": "S", "vl": "=IF(B1 > 5, \\"true\\", \\"false\\")", "name": "blub" } ]`)
 
 const demo_spreadsheet = {

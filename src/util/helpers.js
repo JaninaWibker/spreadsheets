@@ -46,6 +46,51 @@ const format_data = (data, tp, stp, r_dec) => {
   }
 }
 
+// turn "123" into "DS"
+const generate_col_id_format = (row_id) => {
+
+  return Alphabet[row_id] // TODO: implement something that works with more than just numbers < 26
+}
+
+// parse "ABC" into 1*26^2 + 2*26^1 * 
+const parse_col_id_format = (row_id) => {
+
+  // acc: [count, significance]
+  // significance of position, reducing by one each iteration
+  // this is basically iteratively converting from base 26 to base 10
+
+  const reducer = (acc, curr) =>
+    [acc[0] + (alphabet.indexOf(curr) + 1) * Math.pow(alphabet.length, acc[1] - 1), acc[1] - 1]
+
+  if(row_id === "") return -1
+
+  return row_id
+    .toLowerCase()
+    .split("")
+    .reduce(reducer, [0, row_id.length])[0] - 1
+}
+
+// parse cell ids to coordinates; can parse both "ABC123" and "123.123" but not named references ("=someNamedCell")
+const parse_cell_id_format = (cell_id) => {
+  const excel_format = /^(?<row>[a-z]+)(?<col>[1-9]+[0-9]*)$/i
+  const index_format = /^(?<row>[0-9]+).(?<col>[0-9]+)$/
+
+  const excel_match = cell_id.match(excel_format)
+  const index_match = cell_id.match(index_format)
+
+  if(excel_match) {
+    return [
+      parse_col_id_format(excel_match.groups.row),
+      excel_match.groups.col - 1
+    ] // offsetting by one because zero-based
+  } else if(index_match) {
+    return [
+      +index_match.groups.row,
+      +index_match.groups.col
+    ] // these should already be zero-based
+  }
+}
+
 // Viewport stuff (for scrolling when moving the selection)
 
 const isInViewport = (element, offset=40) => {
@@ -145,6 +190,9 @@ export default {
   format_data,
   Alphabet,
   alphabet,
+  generate_col_id_format,
+  parse_col_id_format,
+  parse_cell_id_format,
 }
 
 export {
@@ -168,4 +216,7 @@ export {
   format_data,
   Alphabet,
   alphabet,
+  generate_col_id_format,
+  parse_col_id_format,
+  parse_cell_id_format,
 }

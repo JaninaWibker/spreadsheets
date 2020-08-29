@@ -3,7 +3,7 @@ import '../css/spreadsheet.css'
 
 import { BorderCell, Cell } from './Cell.js'
 import Selection from './Selection.js'
-import { range, destructure, default_value, format_data, scrollIntoViewIfNeeded, Alphabet, parse_formula } from '../util/helpers.js'
+import { range, destructure, default_value, format_data, scrollIntoViewIfNeeded, parse_formula, parse_cell_id_format, generate_col_id_format } from '../util/helpers.js'
 
 import lib from '../util/stdlib.js'
 
@@ -60,24 +60,22 @@ export default class Spreadsheet extends Component {
     // g stands for get and was used directly before a proper excel syntax parser was implemented, that is why the name is so short
     const g = (cell, call_cell, byRender=false, rec_call_cell) => {
       //console.log(cell, call_cell, byRender, rec_call_cell)
-      let s
-      // support both g('A1') and g('1.1')
-      if(cell.indexOf('.') === -1) {
-        const match = cell.match(/^([a-zA-Z])+([0-9]+)$/)
-        if(match) {
-          // possible bug: would this fail for 'ABC213' because only one letter is considered?
-          s = [parseInt(match[2], 10)-1, Alphabet.indexOf(match[1].toUpperCase())] // excel-like format (A1, B5, ...)
+
+      // this supports both "ABC321" and "123.123" as cell formats
+      // it does not support referencing named cells; for those
+      // it just returns undefined
+      let s = parse_cell_id_format(cell)
+
+      // support for named references / identifiers
+      if(!s) {
+        const identifierMatch = cell.match(/^[a-zA-Z_][a-zA-Z_0-9]*$/)
+        if(identifierMatch && IDENTIFIER_CELLS[identifierMatch[0]]) {
+          s = IDENTIFIER_CELLS[identifierMatch[0]] // identifier (like variable names)
         } else {
-          const identifierMatch = cell.match(/^[a-zA-Z_][a-zA-Z_0-9]*$/)
-          if(identifierMatch && IDENTIFIER_CELLS[identifierMatch[0]]) {
-            s = IDENTIFIER_CELLS[identifierMatch[0]] // identifier (like variable names)
-          } else {
-            throw Error('not a valid Cell (named cell not defined or mistakenly identified as identifier (if this is what happened, you probably have an error in your selector))')
-          }
+          throw Error('not a valid Cell (named cell not defined or mistakenly identified as identifier (if this is what happened, you probably have an error in your selector))')
         }
-      } else {
-        s = cell.split('.') // dot-seperated (was the default, excel-like and identifier were added later on, so this is kind of like the prefered way)
       }
+
       const c = this.data[s[0]][s[1]]
 
       const cs = call_cell.split('.')
@@ -116,7 +114,7 @@ export default class Spreadsheet extends Component {
           if(this.data[s[0]][s[1]].visited === undefined || this.data[s[0]][s[1]].visited === false) {
             if(cell !== call_cell || byRender) {
               console.log(c.id, rcc.id)
-              this.data[s[0]][s[1]]._vl = c.fn(id => g(id, call_cell, false, c.id), lib)
+              this.data[s[0]][s[1]]._vl = c.fn(id => g(id, call_cell, false, c.id), lib) // TODO: this might need to change when `g` changes
             } else {
               this.data[s[0]][s[1]]._vl = this.data[s[0]][s[1]].vl || default_value(this.data[s[0]][s[1]].tp)
             }
@@ -197,7 +195,7 @@ export default class Spreadsheet extends Component {
       this.update(cell.id)
     }
 
-    const v = this.g(cell.id, cell.id, true, cell.id)
+    const v = this.g(cell.id, cell.id, true, cell.id) // TODO: this might need to change when `g` changes
 
     const sel_cb = (e, id) => {
       const [col, row] = id.split('.')
@@ -283,7 +281,7 @@ export default class Spreadsheet extends Component {
             <tr id={'r0l'} key={'r0l'}>
               <th className="border border-left-top" id={'c0r0_'} key={'c0r0_'}>{'/'}</th>
               {range(this.columns).map(col_num =>
-                  <BorderCell key={'c' + col_num + '_'} id={'c' + col_num + '_'} className="border-top" content={Alphabet[col_num] /* TODO: does this work for i.e. ABC (something with more than one letter) */} />
+                  <BorderCell key={'c' + col_num + '_'} id={'c' + col_num + '_'} className="border-top" content={generate_col_id_format(col_num)} />
               )}
             </tr>
             {range(this.rows).map(row_num =>
