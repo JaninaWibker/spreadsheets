@@ -46,10 +46,18 @@ const format_data = (data, tp, stp, r_dec) => {
   }
 }
 
-// turn "123" into "DS"
+// turn "122" into "DS" (zero-based)
 const generate_col_id_format = (row_id) => {
+  let col_name = ''
+  let dividend = Math.floor(Math.abs(row_id + 1))
+  let rest
 
-  return Alphabet[row_id] // TODO: implement something that works with more than just numbers < 26
+  while(dividend > 0) {
+    rest = (dividend - 1) % 26
+    col_name = String.fromCharCode(65 + rest) + col_name
+    dividend = parseInt((dividend - rest)/26)
+  }
+  return col_name
 }
 
 // parse "ABC" into 1*26^2 + 2*26^1 * 
