@@ -55,78 +55,110 @@ export default class Spreadsheet extends Component {
       }
     }
 
-    // TODO: improve the way cells are labelled / identified
+// TODO: improve the way cells are labelled / identified
 
-    // g stands for get and was used directly before a proper excel syntax parser was implemented, that is why the name is so short
-    const g = (cell, call_cell, byRender=false, rec_call_cell) => {
-      //console.log(cell, call_cell, byRender, rec_call_cell)
+// g stands for get and was used directly before a proper excel syntax parser was implemented, that is why the name is so short
+const get_cell = (data, identifier_cells) => (cell, call_cell, byRender=false, rec_call_cell) => {
+  //console.log(cell, call_cell, byRender, rec_call_cell)
 
-      // this supports both "ABC321" and "123.123" as cell formats
-      // it does not support referencing named cells; for those
-      // it just returns undefined
-      let s = parse_cell_id_format(cell)
+  // this supports both "ABC321" and "123.123" as cell formats
+  // it does not support referencing named cells; for those
+  // it just returns undefined
+  let s = parse_cell_id_format(cell)
 
-      // support for named references / identifiers
-      if(!s) {
-        const identifierMatch = cell.match(/^[a-zA-Z_][a-zA-Z_0-9]*$/)
-        if(identifierMatch && IDENTIFIER_CELLS[identifierMatch[0]]) {
-          s = IDENTIFIER_CELLS[identifierMatch[0]] // identifier (like variable names)
-        } else {
-          throw Error('not a valid Cell (named cell not defined or mistakenly identified as identifier (if this is what happened, you probably have an error in your selector))')
-        }
-      }
+  // support for named references / identifiers
+  if(!s) {
+    const identifierMatch = cell.match(/^[a-zA-Z_][a-zA-Z_0-9]*$/)
+    if(identifierMatch && identifier_cells[identifierMatch[0]]) {
+      s = identifier_cells[identifierMatch[0]] // identifier (like variable names)
+    } else {
+      throw Error('not a valid Cell (named cell not defined or mistakenly identified as identifier (if this is what happened, you probably have an error in your selector))')
+    }
+  }
 
-      const c = this.data[s[0]][s[1]]
+  const c = data[s[0]][s[1]]
 
-      const cs = call_cell.split('.')
-      const cc = this.data[cs[0]][cs[1]]
+  const cs = call_cell.split('.')
+  const cc = data[cs[0]][cs[1]]
 
-      const rcs = rec_call_cell.split('.')
-      const rcc = this.data[rcs[0]][rcs[1]]
+  const rcs = rec_call_cell.split('.')
+  const rcc = data[rcs[0]][rcs[1]]
 
-      if(c === undefined) {
-        console.log(cell, call_cell, c)
-        return '<error>'
-      }
+  if(c === undefined) {
+    console.log(cell, call_cell, c)
+    return '<error>'
+  }
 
-      if(c.tp === CELL_TYPE.EMPTY) return ''
-      if(c.tp === CELL_TYPE.NUMBER || c.tp === CELL_TYPE.STRING) {
+  if(c.tp === CELL_TYPE.EMPTY) return ''
+  if(c.tp === CELL_TYPE.NUMBER || c.tp === CELL_TYPE.STRING) {
 
-        // add 'changes'-array to the current cell including the caller of g (the previous function in the callstack, (and the cell of this function))
-        // if the array does exist already, the id of the cell is just pushed to it
-        if(cell !== rec_call_cell) {
-          console.log('caller', this.data[rcs[0]][rcs[1]], 'current', this.data[s[0]][s[1]])
+    // add 'changes'-array to the current cell including the caller of g (the previous function in the callstack, (and the cell of this function))
+    // if the array does exist already, the id of the cell is just pushed to it
+    if(cell !== rec_call_cell) {
+      console.log('caller', data[rcs[0]][rcs[1]], 'current', data[s[0]][s[1]])
 
-          if(Array.isArray(this.data[s[0]][s[1]].changes) && !this.data[s[0]][s[1]].changes.includes(rcc.id))
-            this.data[s[0]][s[1]].changes.push(rcc.id)
-          else if(!Array.isArray(this.data[s[0]][s[1]].changes))
-            this.data[s[0]][s[1]].changes = [rcc.id]
+      if(Array.isArray(data[s[0]][s[1]].changes) && !data[s[0]][s[1]].changes.includes(rcc.id)) {}
+        // data[s[0]][s[1]].changes.push(rcc.id)
+      else if(!Array.isArray(data[s[0]][s[1]].changes)) {}
+        // data[s[0]][s[1]].changes = [rcc.id]
 
 
-          console.log(destructure(this.data[rcs[0]][rcs[1]], ['id', 'changes', 'visited']), destructure(this.data[s[0]][s[1]], ['id', 'changes', 'visited']))
-        }
-
-        if(!c.fn) return c.vl
-        if(c.fn) {
-          // if already calculated then add visited = true, else check if it is a circular call and if it is
-          // return the default value for this data type, else calculate the value by executing the function
-          if(this.data[s[0]][s[1]].visited === undefined || this.data[s[0]][s[1]].visited === false) {
-            if(cell !== call_cell || byRender) {
-              console.log(c.id, rcc.id)
-              this.data[s[0]][s[1]]._vl = c.fn(id => g(id, call_cell, false, c.id), lib) // TODO: this might need to change when `g` changes
-            } else {
-              this.data[s[0]][s[1]]._vl = this.data[s[0]][s[1]].vl || default_value(this.data[s[0]][s[1]].tp)
-            }
-          }
-
-          this.data[s[0]][s[1]].visited = true
-
-          return this.data[s[0]][s[1]]._vl
-        }
-      } else return c.vl
+      console.log(destructure(data[rcs[0]][rcs[1]], ['id', 'changes', 'visited']), destructure(data[s[0]][s[1]], ['id', 'changes', 'visited']))
     }
 
-    this.g = g.bind(this)
+    if(!c.fn) return c.vl
+    if(c.fn) {
+      // if already calculated then add visited = true, else check if it is a circular call and if it is
+      // return the default value for this data type, else calculate the value by executing the function
+      if(data[s[0]][s[1]].visited === undefined || data[s[0]][s[1]].visited === false) {
+        if(cell !== call_cell || byRender) {
+          console.log(c.id, rcc.id)
+          data[s[0]][s[1]]._vl = c.fn(id => get_cell(data, identifier_cells)(id, call_cell, false, c.id), lib) // TODO: this might need to change when `g` changes
+        } else {
+          data[s[0]][s[1]]._vl = data[s[0]][s[1]].vl || default_value(data[s[0]][s[1]].tp)
+        }
+      }
+
+      data[s[0]][s[1]].visited = true
+
+      return data[s[0]][s[1]]._vl
+    }
+  } else return c.vl
+}
+
+export default class Spreadsheet extends Component {
+  constructor(props) {
+    super(props)
+
+    // TODO: transform this.props.data here (could some of this already happen while initially generating the cells (fillTable, ...)?; adding extra values, parsing formulas, building inverse dependency tree)
+    this.data    = this.props.data
+    this.name    = this.props.name
+    this.columns = this.data[0].length
+    this.rows    = this.data.length
+
+    this.props.cb(this.data, this.update)
+    this.g = get_cell(this.data, IDENTIFIER_CELLS)
+
+    this.state = {
+      selection: {
+        start_x: 0,
+        start_y: 0,
+        end_x: 0,
+        end_y: 0,
+        _start_x: 0,
+        _start_y: 0,
+        _end_x: 0,
+        _end_y: 0
+      },
+      focused: {
+        x: 0,
+        y: 0
+      },
+      dimensions: {
+        x: this.data[0].length,
+        y: this.data.length
+      }
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -143,12 +175,12 @@ export default class Spreadsheet extends Component {
   }
 
   _update = (cell_id) => {
-    const [col, row] = cell_id.split('.')
+    const [col, row] = cell_id
     const cell = this.data[col][row]
 
     this.data[col][row].visited = false
 
-    if(cell.changes) cell.changes.map(this.update)
+    if(cell.changes) cell.changes.map(this._update)
   }
 
   update = (cell_id) => {
@@ -191,7 +223,7 @@ export default class Spreadsheet extends Component {
         }
       }
 
-      this.update(cell.id)
+      this.update(cell._id)
     }
 
     const v = this.g(cell.id, cell.id, true, cell.id) // TODO: this might need to change when `g` changes
