@@ -142,7 +142,7 @@ const destructure = (obj, template) => {
 
 // create specific cells, cells in general, whole Table, create Rows and Columns, fill in missing Ids
 
-const createCell = (id, tp=CELL_TYPE.STRING, vl=tp === CELL_TYPE.EMPTY ? undefined : '', stp, fn) => ({ id, tp, stp, vl, fn })
+const createCell = ([row, col], tp=CELL_TYPE.STRING, vl=tp === CELL_TYPE.EMPTY ? undefined : '', stp, fn, style={}) => ({ tp, stp, id: row + '.' + col, _id: [row, col], row, col, style, vl, _vl: undefined, err: undefined, fn, refs: [], changes: [], visited: false })
 
 const createEmptyCell = (id) => createCell(id, CELL_TYPE.EMPTY)
 const createStringCell = (id, vl, fn, stp) => createCell(id, CELL_TYPE.STRING, vl, stp, fn)
@@ -150,18 +150,19 @@ const createNumberCell = (id, vl, fn, stp) => createCell(id, CELL_TYPE.NUMBER, v
 
 const createRow = (start, end, col, cell) =>
   range(end-start)
-    .map(x => x + start)
-    .map(x => cell
-      ? createCell('' + col + '.' + x, cell.tp, cell.vl, cell.stp, cell.fn)
-      : createCell('' + col + '.' + x)
+    .map(y => y + start)
+    .map(y => cell
+      ? createCell([y, col], cell.tp, cell.vl, cell.stp, cell.fn)
+      : createCell([y, col])
     )
 
 const createCol = (start, end, row, cell) =>
   range(end-start)
     .map(x => x + start)
     .map(x => cell
-      ? createCell('' + x + '.' + row, cell.tp, cell.vl, cell.stp, cell.fn)
-      : createCell('' + x + '.' + row))
+      ? createCell([row, x], cell.tp, cell.vl, cell.stp, cell.fn)
+      : createCell([row, x])
+    )
 
 const createTable = (start_x, start_y, end_x, end_y, cell) =>
   range(end_y - start_y)
@@ -169,25 +170,25 @@ const createTable = (start_x, start_y, end_x, end_y, cell) =>
     .map(x => createRow(start_x, end_x, x, cell))
 
 const fillTableEmpty = (height, width, array) =>
-  range(height).map(x =>
-    range(width).map(y =>
-      array[x]
-      ? array[x][y]
-        ? array[x][y]
-        : createEmptyCell('' + x + '.' + y)
-      : createRow(0, width, x, createEmptyCell())
+  range(height).map(y =>
+    range(width).map(x =>
+      array[y]
+      ? array[y][x]
+        ? array[y][x]
+        : createEmptyCell([y, x])
+      : createRow(0, width, y, createEmptyCell())
   ))
 
 const fillTableIds = (height, width, array) =>
-  range(height).map(x =>
-    range(width).map(y =>
-      array[x]
-      ? array[x][y]
-        ? array[x][y].id
-          ? array[x][y]
-          : {id: '' + x + '.' + y, ...array[x][y]}
-        : createStringCell('' + x + '.' + y, '**WARNING**: MISSING CELL')
-      : createRow(0, width, x, createStringCell(null, '**WARNING**: MISSING CELL'))
+  range(height).map(y =>
+    range(width).map(x =>
+      array[y]
+      ? array[y][x]
+        ? array[y][x].id
+          ? array[y][x]
+          : {tp: undefined, stp: undefined, id: '' + y + '.' + x, _id: [y, x], col: x, row: y, style: {}, vl: undefined, _vl: undefined, err: undefined, fn: undefined, refs: [], changes: [], visited: false, refs: [], changes: [], _vl: undefined, ...array[y][x]}
+        : createStringCell([y, x], '**WARNING**: MISSING CELL')
+      : createRow(0, width, y, createStringCell(null, '**WARNING**: MISSING CELL'))
   ))
 
 export default {
