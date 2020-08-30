@@ -1,4 +1,4 @@
-import { fillTableEmpty, fillTableIds } from './helpers.js'
+import { fillTableEmpty, fillTableIds, CELL_TYPE } from './helpers.js'
 
 const parse_options = (str) => str
     .split('\n')
@@ -37,9 +37,9 @@ const transform_data = (raw_data) => {
 }
 
 const convert_type = (type) => {
-  if(type === "S") return "STRING"
-  if(type === "N") return "NUMBER"
-  if(type === "E") return "EMPTY"
+  if(type === "S") return CELL_TYPE.STRING
+  if(type === "N") return CELL_TYPE.NUMBER
+  if(type === "E") return CELL_TYPE.EMPTY
 }
 
 const parse_data = (str) => str

@@ -2,6 +2,8 @@ import React from 'react'
 import Editable from './Editable.js'
 import '../css/cell.css'
 
+import { CELL_TYPE } from '../util/helpers.js'
+
 const BorderCell = ({id, content, className}) => (
   <th
     className={'border-cell border' + (className ? ' ' + className : '')}
@@ -23,7 +25,7 @@ const Cell = ({id, content, style, editable=false, cb, sel_cb, handleArrowKeys, 
         {!editable
           ? <span>{String(content)}</span>
           : <Editable
-              setInnerHTML={tp === 'STRING'}
+              setInnerHTML={tp === CELL_TYPE.STRING}
               handleArrowKeys={handleArrowKeys}
               raw_data={String(raw_data)} cb={cb}
               isFocused={isFocused}>

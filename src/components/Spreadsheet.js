@@ -3,7 +3,7 @@ import '../css/spreadsheet.css'
 
 import { BorderCell, Cell } from './Cell.js'
 import Selection from './Selection.js'
-import { range, destructure, default_value, format_data, scroll_into_view_if_needed, parse_formula, parse_cell_id_format, generate_col_id_format } from '../util/helpers.js'
+import { range, destructure, default_value, format_data, scroll_into_view_if_needed, parse_formula, parse_cell_id_format, generate_col_id_format, CELL_TYPE } from '../util/helpers.js'
 
 import lib from '../util/stdlib.js'
 
@@ -89,9 +89,8 @@ export default class Spreadsheet extends Component {
         return '<error>'
       }
 
-      if(c.tp === 'EMPTY') return ''
-      // if(c.tp === 'STRING') return c.vl // also allow functions that return strings
-      if(c.tp === 'NUMBER' || c.tp === 'STRING') {
+      if(c.tp === CELL_TYPE.EMPTY) return ''
+      if(c.tp === CELL_TYPE.NUMBER || c.tp === CELL_TYPE.STRING) {
 
         // add 'changes'-array to the current cell including the caller of g (the previous function in the callstack, (and the cell of this function))
         // if the array does exist already, the id of the cell is just pushed to it
@@ -162,18 +161,18 @@ export default class Spreadsheet extends Component {
     if(cell.name) {
       IDENTIFIER_CELLS[cell.name] = [row, col]
     }
-    const editable = (cell.tp === 'NUMBER' || cell.tp === 'STRING')
+    const editable = (cell.tp === CELL_TYPE.NUMBER || cell.tp === CELL_TYPE.STRING)
 
-    if(cell.vl && (typeof(cell.vl) === 'string') && cell.vl.startsWith('=') && !cell.fn) cell.fn = parse_formula(cell.vl.substring(1))
+    if(cell.vl && (typeof(cell.vl) === 'string') && cell.vl.startsWith('=') && !cell.fn) cell.fn = parse_formula(cell.vl.substring(1)).fn
     
 
     const cb = (value) => {
       // if formula then assign new value to .vl and compute .fn
       if(value.startsWith('=')) {
         this.data[row][col].vl = value
-        this.data[row][col].fn = parse_formula(value.substring(1))
+        this.data[row][col].fn = parse_formula(value.substring(1)).fn
       } else {
-        if(this.data[row][col].tp === 'NUMBER') {
+        if(this.data[row][col].tp === CELL_TYPE.NUMBER) {
           if(isNaN(parseFloat(value))) {
             console.log(this.data[row][col])
             // TODO: what should happen here? this is what gets run if the value that is inputted is not a
@@ -187,7 +186,7 @@ export default class Spreadsheet extends Component {
           } else {
             this.data[row][col].vl = parseFloat(value)
           }
-        } else if(this.data[row][col].tp === 'STRING') {
+        } else if(this.data[row][col].tp === CELL_TYPE.STRING) {
           this.data[row][col].vl = value
         }
       }

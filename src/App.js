@@ -2,7 +2,7 @@ import React, { Component } from 'react'
 import Spreadsheet from './components/Spreadsheet.js'
 import './css/index.css'
 
-import { /*range, createCell, createEmptyCell,*/ createStringCell, /*createNumberCell, createRow, createCol,*/ createTable, fillTableEmpty, fillTableIds } from './util/helpers.js'
+import { /*range, createCell, createEmptyCell,*/ createStringCell, /*createNumberCell, createRow, createCol,*/ createTable, fillTableEmpty, fillTableIds, CELL_TYPE } from './util/helpers.js'
 import parse_file from './util/file-parser.js'
 
 const file_demo_spreadsheet = parse_file(`
@@ -28,10 +28,10 @@ const demo_spreadsheet = {
   },
   data: createTable(0, 0, 26, 28, createStringCell(null, "")),
   data: fillTableIds(4, 2, fillTableEmpty(4, 2, [
-    [{tp: 'STRING', vl: '**test**', style: {fontFamily: 'Menlo'}}, {tp: 'NUMBER', vl: 5, name: 'thisIsSomeName'}],
-    [{tp: 'STRING', vl: '`123`: blub'},                            {tp: 'NUMBER', vl: '=A1:A1'}],
-    [{tp: 'STRING', vl: '=pi'}],
-    [{tp: 'EMPTY'},                                                {tp: 'STRING', vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
+    [{tp: CELL_TYPE.STRING, vl: '**test**', style: {fontFamily: 'Menlo'}}, {tp: CELL_TYPE.NUMBER, vl: 5, name: 'thisIsSomeName'}],
+    [{tp: CELL_TYPE.STRING, vl: '`123`: blub'},                            {tp: CELL_TYPE.NUMBER, vl: '=A1:A1'}],
+    [{tp: CELL_TYPE.STRING, vl: '=pi'}],
+    [{tp: CELL_TYPE.EMPTY},                                                {tp: CELL_TYPE.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
   ])),
   name: 'demo_spreadsheet'
 }

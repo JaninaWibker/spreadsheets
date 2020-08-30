@@ -1,6 +1,18 @@
 import { inlineLexer } from '../util/inline-markdown.js'
 import { transpile } from './parser/index.js'
 
+const CELL_TYPE = {
+  NUMBER: 'number',
+  STRING: 'string',
+  EMPTY: 'empty',
+}
+
+const CELL_SUBTYPE = {
+  PERCENTAGE: 'percentage',
+  UPPERCASE: 'uppercase',
+  LOWERCASE: 'lowercase',
+}
+
 const MARKED_OPTIONS = {
   smartypants: true
 }
@@ -17,9 +29,9 @@ const Alphabet = 'ABCDEFGHIJKLNMOPQRSTUVWXYZ'.split('')
 const alphabet = 'abcdefghijklnmopqrstuvwxyz'.split('')
 
 const default_value = tp => {
-  if(tp === 'EMPTY') return ''
-  if(tp === 'STRING') return ''
-  if(tp === 'NUMBER') return 0
+  if(tp === CELL_TYPE.EMPTY) return ''
+  if(tp === CELL_TYPE.STRING) return ''
+  if(tp === CELL_TYPE.NUMBER) return 0
 }
 
 // format function, cell stuff is given and formatted data is returned
@@ -27,18 +39,18 @@ const default_value = tp => {
 const format_data = (data, tp, stp, r_dec) => {
   if(typeof tp === 'undefined') throw Error('no type defined')
   else if(typeof data === 'undefined') data = default_value(tp) // throw Error('no data defined')
-  if(tp === 'NUMBER') {
+  if(tp === CELL_TYPE.NUMBER) {
     // this is incase something formatted as a number is actually a string, this shouldn't break the application, just ignore the formatting
     if(typeof data !== "number" && isNaN(parseFloat(data))) return data
-    if(stp === 'PERCENTAGE' && r_dec) return round(data * 100, r_dec) + '%'
-    if(stp === 'PERCENTAGE') return (data * 100) + '%'
+    if(stp === CELL_SUBTYPE.PERCENTAGE && r_dec) return round(data * 100, r_dec) + '%'
+    if(stp === CELL_SUBTYPE.PERCENTAGE) return (data * 100) + '%'
     if(r_dec) return round(data, r_dec)
     else return data
-  } else if(tp === 'STRING') {
-    if(stp === 'UPPERCASE') return marked(data.toUpperCase(), {}, {smartypants: true})
-    if(stp === 'LOWERCASE') return marked(data.toLowerCase(), {}, {smartypants: true})
+  } else if(tp === CELL_TYPE.STRING) {
+    if(stp === CELL_SUBTYPE.UPPERCASE) return marked(data.toUpperCase(), {}, {smartypants: true})
+    if(stp === CELL_SUBTYPE.LOWERCASE) return marked(data.toLowerCase(), {}, {smartypants: true})
     else return marked(String(data), {}, {smartypants: true})
-  } else if(tp === 'EMPTY') {
+  } else if(tp === CELL_TYPE.EMPTY) {
     // TODO: this is just here for debugging
     return '<empty>'
   } else {
@@ -130,11 +142,11 @@ const destructure = (obj, template) => {
 
 // create specific cells, cells in general, whole Table, create Rows and Columns, fill in missing Ids
 
-const createCell = (id, tp='STRING', vl=tp === 'EMPTY' ? undefined : '', stp, fn) => ({ id, tp, stp, vl, fn })
+const createCell = (id, tp=CELL_TYPE.STRING, vl=tp === CELL_TYPE.EMPTY ? undefined : '', stp, fn) => ({ id, tp, stp, vl, fn })
 
-const createEmptyCell = (id) => createCell(id, 'EMPTY')
-const createStringCell = (id, vl, fn, stp) => createCell(id, 'STRING', vl, stp, fn)
-const createNumberCell = (id, vl, fn, stp) => createCell(id, 'NUMBER', vl, stp, fn)
+const createEmptyCell = (id) => createCell(id, CELL_TYPE.EMPTY)
+const createStringCell = (id, vl, fn, stp) => createCell(id, CELL_TYPE.STRING, vl, stp, fn)
+const createNumberCell = (id, vl, fn, stp) => createCell(id, CELL_TYPE.NUMBER, vl, stp, fn)
 
 const createRow = (start, end, col, cell) =>
   range(end-start)
@@ -201,6 +213,8 @@ export default {
   generate_col_id_format,
   parse_col_id_format,
   parse_cell_id_format,
+  CELL_TYPE,
+  CELL_SUBTYPE,
 }
 
 export {
@@ -227,4 +241,6 @@ export {
   generate_col_id_format,
   parse_col_id_format,
   parse_cell_id_format,
+  CELL_TYPE,
+  CELL_SUBTYPE,
 }

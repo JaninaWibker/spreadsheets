@@ -21,9 +21,89 @@ const compile = ast => {
   const transpiled_code = `(g, lib) => ${compile_inner(ast[0])}`
   try {
     /* eslint-disable-next-line */
-    return window.eval(transpiled_code)
+    return { fn: window.eval(transpiled_code), refs: get_refs(ast[0]) }
   } catch(e) {
     console.error(transpiled_code, e)
+  }
+}
+
+const get_refs = ast => {
+  switch(ast.type) {
+    case 'call': {
+      const args = ast.val.type === 'list' ? ast.val.val : [ast.val]
+      if(ast.fn === 'if' && args.length === 2) {
+        return [...get_refs(args[0]), ...get_refs(args[1])]
+      } else if(ast.fn === 'if' && args.length === 3) {
+        return [...get_refs(args[0]), ...get_refs(args[1]), ...get_refs(args[2])]
+      } else if(ast.fn === 'if') {
+        throw Error('Syntax error')
+      } else {
+        return args.map(get_refs).flat(1)
+      }
+    }
+    case 'or':
+    case 'and':
+    case 'inequality':
+    case 'equality':
+    case 'greater_than':
+    case 'less_than':
+    case 'greater_than_or_equal':
+    case 'less_than_or_equal':
+    case 'subtraction':
+    case 'addition':
+    case 'multiplication':
+    case 'division':
+    case 'modulo':
+    case 'power': {
+      return [...get_refs(ast.val[0]), ...get_refs(ast.val[1])]
+    }
+    case 'unary_negation':
+    case 'unary_plus':
+    case 'unary_minus': {
+      return get_refs(ast.val)
+    }
+    case 'range': {
+      console.log(ast.val)
+      const x1 = parse_col_id_format(ast.val[0].val[0])
+      const x2 = parse_col_id_format(ast.val[1].val[0])
+      const y1 = ast.val[0].val[1] - 1
+      const y2 = ast.val[1].val[1] - 1
+
+      const tlx = Math.min(x1, x2) // top-left
+      const tly = Math.min(y1, y2)
+      const brx = Math.max(x1, x2) // bottom-right
+      const bry = Math.max(y1, y2)
+
+      const refs = []
+
+      for(let row = tly; row <= bry; row++) {
+        for(let col = tlx; col <= brx; col++) {
+          refs.push([row, col])
+        }
+      }
+
+      return refs
+    }
+    case 'parenthesis': {
+      return get_refs(ast.val)
+    }
+    case 'boolean':
+    case 'number':
+    case 'string': return []
+    case 'identifier': {
+      switch(ast.val.toLowerCase()) {
+        case 'pi':  return []
+        case 'e':   return []
+        default:    return [ast.val]
+      }
+    }
+    case 'cell': {
+      return [[ast.val[1]-1, parse_col_id_format(ast.val[0])]]
+    }
+    default: {
+      console.log(ast)
+      throw new Error('Invalid type error')
+    }
   }
 }
 
@@ -77,10 +157,10 @@ const compile_inner = ast => {
 
       const results = []
 
-      for(let j = tlx; j <= brx; j++) {
-        for(let k = tly; k <= bry; k++) {
-          console.log('cell:', j, k)
-          results.push(`g('${k}.${j}')`) // TODO: this might need to change when `g` changes
+      for(let row = tly; row <= bry; row++) {
+        for(let col = tlx; col <= brx; col++) {
+          console.log('cell:', row, col)
+          results.push(`g('${row}.${col}')`) // TODO: this might need to change when `g` changes
         }
       }
 
@@ -104,10 +184,13 @@ const compile_inner = ast => {
       switch(ast.val.toLowerCase()) {
         case 'pi':  return `lib.pi`
         case 'e':   return `lib.e`
-        default: return `g('${ast.val}')` // TODO: this might need to change when `g` changes
+        default:    return `g('${ast.val}')` // TODO: this might need to change when `g` changes
       }
     }
-    case 'cell':                  return `g('${ast.val[1]-1}.${parse_col_id_format(ast.val[0])}')` // TODO: this might need to change when `g` changes
+    case 'cell': {
+      const ref = [ast.val[1]-1, parse_col_id_format(ast.val[0])]
+      return `g('${ref[0]}.${ref[1]}')` // TODO: this might need to change when `g` changes
+    }
     default: {
       console.log(ast)
       return `throw Error('Invalid type error')`
