@@ -78,9 +78,9 @@ const parse_col_id_format = (row_id) => {
     .reduce(reducer, [0, row_id.length])[0] - 1
 }
 
-// parse cell ids to coordinates; can parse both "ABC123" and "123.123" but not named references ("=someNamedCell")
+// parse cell ids to coordinates; can parse both "ABC123" and "123.123" but not named references ("=someNamedCell"); note that B1 has the column first and the row second while 0.1 has the row first followed by column
 const parse_cell_id_format = (cell_id) => {
-  const excel_format = /^(?<row>[a-z]+)(?<col>[1-9]+[0-9]*)$/i
+  const excel_format = /^(?<col>[a-z]+)(?<row>[1-9]+[0-9]*)$/i
   const index_format = /^(?<row>[0-9]+).(?<col>[0-9]+)$/
 
   const excel_match = cell_id.match(excel_format)
@@ -88,8 +88,8 @@ const parse_cell_id_format = (cell_id) => {
 
   if(excel_match) {
     return [
-      parse_col_id_format(excel_match.groups.row),
-      excel_match.groups.col - 1
+      excel_match.groups.row - 1,
+      parse_col_id_format(excel_match.groups.col)
     ] // offsetting by one because zero-based
   } else if(index_match) {
     return [
@@ -101,7 +101,7 @@ const parse_cell_id_format = (cell_id) => {
 
 // Viewport stuff (for scrolling when moving the selection)
 
-const isInViewport = (element, offset=40) => {
+const is_in_viewport = (element, offset=40) => {
   let rect = element.getBoundingClientRect()
   return (
     rect.top >= (0 + offset) &&
@@ -111,8 +111,8 @@ const isInViewport = (element, offset=40) => {
   )
 }
 
-const scrollIntoViewIfNeeded = (element) =>
-  !isInViewport(element)
+const scroll_into_view_if_needed = (element) =>
+  !is_in_viewport(element)
     ? element.scrollIntoView({behavior: 'smooth', block: 'center'})
     : null
 
@@ -192,8 +192,8 @@ export default {
   round,
   destructure,
   default_value,
-  isInViewport,
-  scrollIntoViewIfNeeded,
+  is_in_viewport,
+  scroll_into_view_if_needed,
   marked,
   format_data,
   Alphabet,
@@ -217,8 +217,8 @@ export {
   round,
   destructure,
   default_value,
-  isInViewport,
-  scrollIntoViewIfNeeded,
+  is_in_viewport,
+  scroll_into_view_if_needed,
   marked,
   parse_formula,
   format_data,

@@ -3,7 +3,7 @@ import '../css/spreadsheet.css'
 
 import { BorderCell, Cell } from './Cell.js'
 import Selection from './Selection.js'
-import { range, destructure, default_value, format_data, scrollIntoViewIfNeeded, parse_formula, parse_cell_id_format, generate_col_id_format } from '../util/helpers.js'
+import { range, destructure, default_value, format_data, scroll_into_view_if_needed, parse_formula, parse_cell_id_format, generate_col_id_format } from '../util/helpers.js'
 
 import lib from '../util/stdlib.js'
 
@@ -158,9 +158,9 @@ export default class Spreadsheet extends Component {
   }
 
   render_cell(cell) {
-    const [col, row] = cell.id.split('.')
+    const [row, col] = cell.id.split('.')
     if(cell.name) {
-      IDENTIFIER_CELLS[cell.name] = [col, row]
+      IDENTIFIER_CELLS[cell.name] = [row, col]
     }
     const editable = (cell.tp === 'NUMBER' || cell.tp === 'STRING')
 
@@ -170,12 +170,12 @@ export default class Spreadsheet extends Component {
     const cb = (value) => {
       // if formula then assign new value to .vl and compute .fn
       if(value.startsWith('=')) {
-        this.data[col][row].vl = value
-        this.data[col][row].fn = parse_formula(value.substring(1))
+        this.data[row][col].vl = value
+        this.data[row][col].fn = parse_formula(value.substring(1))
       } else {
-        if(this.data[col][row].tp === 'NUMBER') {
+        if(this.data[row][col].tp === 'NUMBER') {
           if(isNaN(parseFloat(value))) {
-            console.log(this.data[col][row])
+            console.log(this.data[row][col])
             // TODO: what should happen here? this is what gets run if the value that is inputted is not a
             // TODO: number, but should the error be generated here or somewhere else; considering that no
             // TODO: other input is ever somehow flagged as invalid (you can perfectly well place strings
@@ -185,10 +185,10 @@ export default class Spreadsheet extends Component {
             // TODO: number should display an error if the content of the cell is not interpretable as a number.
             // this.data[row][col].vl = "#NaN"
           } else {
-            this.data[col][row].vl = parseFloat(value)
+            this.data[row][col].vl = parseFloat(value)
           }
-        } else if(this.data[col][row].tp === 'STRING') {
-          this.data[col][row].vl = value
+        } else if(this.data[row][col].tp === 'STRING') {
+          this.data[row][col].vl = value
         }
       }
 
@@ -198,27 +198,27 @@ export default class Spreadsheet extends Component {
     const v = this.g(cell.id, cell.id, true, cell.id) // TODO: this might need to change when `g` changes
 
     const sel_cb = (e, id) => {
-      const [col, row] = id.split('.')
+      const [row, col] = id.split('.')
       if(e.type === 'mousedown')
         this.setState({selection: {
-          start_x: parseInt(row, 10),
-          start_y: parseInt(col, 10),
-          end_x: parseInt(row, 10),
-          end_y: parseInt(col, 10)
+          start_x: parseInt(col, 10),
+          start_y: parseInt(row, 10),
+          end_x: parseInt(col, 10),
+          end_y: parseInt(row, 10)
         }})
       else if(e.type === 'mouseup')
         this.setState({selection: {
           start_x: this.state.selection.start_x,
           start_y: this.state.selection.start_y,
-          end_x: parseInt(row, 10),
-          end_y: parseInt(col, 10)
+          end_x: parseInt(col, 10),
+          end_y: parseInt(row, 10)
         }})
       else if(e.type === 'mouseenter' && e.buttons === 1)
         this.setState({selection: {
           start_x: this.state.selection.start_x,
           start_y: this.state.selection.start_y,
-          end_x: parseInt(row, 10),
-          end_y: parseInt(col, 10)
+          end_x: parseInt(col, 10),
+          end_y: parseInt(row, 10)
         }})
     }
 
@@ -248,14 +248,14 @@ export default class Spreadsheet extends Component {
         x: this.state.selection.start_x,
         y: this.state.selection.start_y
       }}, _ => {
-        if(this.selectionElement) scrollIntoViewIfNeeded(this.selectionElement)
+        if(this.selectionElement) scroll_into_view_if_needed(this.selectionElement)
       })
     }
 
     return (
       <Cell
-      key={col + '.' + row}
-      id={col + '.' + row}
+      key={row + '.' + col}
+      id={row + '.' + col}
       content={format_data(v, cell.tp, cell.stp, cell.r_dec || this.props.options.rounding)}
       editable={editable}
       style={cell.style ? cell.style : null}
