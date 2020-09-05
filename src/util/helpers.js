@@ -28,6 +28,8 @@ const range = (l) => [...Array(l)].map((x,i) => i)
 const Alphabet = 'ABCDEFGHIJKLNMOPQRSTUVWXYZ'.split('')
 const alphabet = 'abcdefghijklnmopqrstuvwxyz'.split('')
 
+const is_formula = cell => cell.vl && typeof(cell.vl) === 'string' && cell.vl.startsWith('=')
+
 const default_value = tp => {
   if(tp === CELL_TYPE.EMPTY) return ''
   if(tp === CELL_TYPE.STRING) return ''
@@ -208,6 +210,8 @@ export default {
   is_in_viewport,
   scroll_into_view_if_needed,
   marked,
+  is_formula,
+  parse_formula,
   format_data,
   Alphabet,
   alphabet,
@@ -235,6 +239,7 @@ export {
   is_in_viewport,
   scroll_into_view_if_needed,
   marked,
+  is_formula,
   parse_formula,
   format_data,
   Alphabet,

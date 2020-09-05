@@ -3,7 +3,7 @@ import Editable from './Editable.js'
 import '../css/cell.css'
 
 import { CELL_TYPE } from '../util/helpers.js'
-
+// TODO: make clicks on border cells select the whole row / column (maybe some special interaction with holding shift as well?)
 const BorderCell = ({id, content, className}) => (
   <th
     className={'border-cell border' + (className ? ' ' + className : '')}
@@ -15,19 +15,20 @@ const BorderCell = ({id, content, className}) => (
   </th>
 )
 
-const Cell = ({id, content, style, editable=false, cb, sel_cb, handleArrowKeys, raw_data, tp, isFocused=false}) => (
+const Cell = ({id, content, style, editable=false, onValueChange, onMouseEvent, onArrowKeyEvent, raw_data, tp, isFocused=false}) => (
   <td id={id}>
     <div
-      onMouseDown={e => sel_cb ? sel_cb(e, id) : null}
-      onMouseUp={e => sel_cb ? sel_cb(e, id) : null}
-      onMouseEnter={e => sel_cb ? sel_cb(e, id) : null}
+      onMouseDown={e => onMouseEvent ? onMouseEvent(e, id) : null}
+      onMouseUp={e => onMouseEvent ? onMouseEvent(e, id) : null}
+      onMouseEnter={e => onMouseEvent ? onMouseEvent(e, id) : null}
       style={style}>
         {!editable
           ? <span>{String(content)}</span>
           : <Editable
               setInnerHTML={tp === CELL_TYPE.STRING}
-              handleArrowKeys={handleArrowKeys}
-              raw_data={String(raw_data)} cb={cb}
+              onArrowKeyEvent={onArrowKeyEvent}
+              raw_data={String(raw_data)}
+              cb={onValueChange}
               isFocused={isFocused}>
                 {String(content)}
             </Editable>
@@ -36,9 +37,9 @@ const Cell = ({id, content, style, editable=false, cb, sel_cb, handleArrowKeys, 
   </td>
 )
 
-const GenericCell = ({id, content, className, style, editable, isBorder=false, cb, sel_cb, handleArrowKeys, raw_data, tp, isFocused}) =>
+const GenericCell = ({id, content, className, style, editable, isBorder=false, onValueChange, onMouseEvent, onArrowKeyEvent, raw_data, tp, isFocused}) =>
   isBorder
     ? (<BorderCell id={id} content={content} className={className} />)
-    : (<Cell id={id} content={content} style={style} editable={editable} cb={cb} sel_cb={sel_cb} handleArrowKeys={handleArrowKeys} raw_data={raw_data} tp={tp} isFocused={isFocused} />)
+    : (<Cell id={id} content={content} style={style} editable={editable} onValueChange={onValueChange} onMouseEvent={onMouseEvent} onArrowKeyEvent={onArrowKeyEvent} raw_data={raw_data} tp={tp} isFocused={isFocused} />)
 
 export { BorderCell, Cell, GenericCell }

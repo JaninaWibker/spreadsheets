@@ -3,7 +3,7 @@ import '../css/spreadsheet.css'
 
 import { BorderCell, Cell } from './Cell.js'
 import Selection from './Selection.js'
-import { range, destructure, default_value, format_data, scroll_into_view_if_needed, parse_formula, parse_cell_id_format, generate_col_id_format, CELL_TYPE } from '../util/helpers.js'
+import { range, destructure, default_value, format_data, scroll_into_view_if_needed, is_formula, parse_formula, parse_cell_id_format, generate_col_id_format, CELL_TYPE } from '../util/helpers.js'
 
 import lib from '../util/stdlib.js'
 
@@ -33,7 +33,7 @@ const transform = (data, identifier_cells) => {
         identifier_cells[cell.name] = cell._id
       }
 
-      const {fn, refs} = (typeof(cell.vl) === "string" && cell.vl.startsWith('=') && parse_formula(cell.vl.substring(1))) || { fn: undefined, refs: [] }
+      const {fn, refs} = (is_formula(cell) && parse_formula(cell.vl.substring(1))) || { fn: undefined, refs: [] }
 
       return { ...cell, fn, refs }
     }).map(cell => {
@@ -104,6 +104,7 @@ const get_cell = (data, identifier_cells) => (cell, call_cell, byRender=false, r
     if(c_row !== rc_row || c_col !== rc_col) {
       console.log('caller', rcc, 'current', c)
 
+      if(Array.isArray(c.changes) && !c.changes.includes(rcc.id)) { // TODO: this technically needs to be more sophisticated now as ids aren't just strings anymore but this code will be removed soon so it shouldn't really matter
         // c.changes.push(rcc.id)
       } else if(!Array.isArray(c.changes)) {
         // c.changes = [rcc.id]
@@ -197,111 +198,108 @@ export default class Spreadsheet extends Component {
     this.forceUpdate()
   }
 
-  render_cell(cell) {
-    const [row, col] = cell._id
+  handleMouseSelection = (e, id) => {
+    const [row, col] = id.split('.')
+    if(e.type === 'mousedown')
+      this.setState({selection: {
+        start_x: parseInt(col, 10),
+        start_y: parseInt(row, 10),
+        end_x: parseInt(col, 10),
+        end_y: parseInt(row, 10)
+      }})
+    else if(e.type === 'mouseup')
+      this.setState({selection: {
+        start_x: this.state.selection.start_x,
+        start_y: this.state.selection.start_y,
+        end_x: parseInt(col, 10),
+        end_y: parseInt(row, 10)
+      }})
+    else if(e.type === 'mouseenter' && e.buttons === 1)
+      this.setState({selection: {
+        start_x: this.state.selection.start_x,
+        start_y: this.state.selection.start_y,
+        end_x: parseInt(col, 10),
+        end_y: parseInt(row, 10)
+      }})
+  }
+
+  handleKeypress = (key, shift, alt, ctrl, preventDefault) => {
+    const sx = { ArrowLeft: -1, ArrowRight: 1 }[key] || 0
+    const sy = { ArrowUp:   -1, ArrowDown:  1 }[key] || 0
+
+    // TODO: ctrl snaps to edge (should also work together with alt)
+
+    // TODO: tab should select the next cell (shift tab inverse; ctrl either no difference or input completely ignored)
+
+    // TODO: if currently at pos1 and using shift to select an area that spans
+    // TODO: from pos1 to pos2 and then pressing an arrow key without shift or
+    // TODO: alt it should act as if the current position is pos2, not pos1
+    // TODO: which is how it currently works
+
+    // TODO: set proper focus to the cell underneath the cursor; this allows pressing enter or similar to start editing
+
+    preventDefault()
+
+    this.setState({selection: {
+      start_x: Math.min(this.state.dimensions.x-1, Math.max(0, this.state.selection.start_x + ((shift && !alt) ? 0 : sx))),
+      start_y: Math.min(this.state.dimensions.y-1, Math.max(0, this.state.selection.start_y + ((shift && !alt) ? 0 : sy))),
+      end_x: Math.min(this.state.dimensions.x-1, Math.max(0, ((alt || shift) ? this.state.selection.end_x : this.state.selection.start_x) + sx)),
+      end_y: Math.min(this.state.dimensions.y-1, Math.max(0, ((alt || shift) ? this.state.selection.end_y : this.state.selection.start_y) + sy)),
+    }, focused: {
+      x: this.state.selection.start_x,
+      y: this.state.selection.start_y
+    }}, _ => {
+      if(this.selectionElement) scroll_into_view_if_needed(this.selectionElement)
+    })
+  }
+
+  handleCellChange = (cell, value) => {
+    const [col, row] = cell._id
     if(cell.name) {
-      IDENTIFIER_CELLS[cell.name] = [row, col]
+      IDENTIFIER_CELLS[cell.name] = cell._id // TODO: this is not necessary on first render; it might however be necessary after modifying a cell (once actually naming cells is implemented; don't know how that would be done though)
     }
-    const editable = (cell.tp === CELL_TYPE.NUMBER || cell.tp === CELL_TYPE.STRING)
-
-    if(cell.vl && (typeof(cell.vl) === 'string') && cell.vl.startsWith('=') && !cell.fn) cell.fn = parse_formula(cell.vl.substring(1)).fn
-    
-
-    const cb = (value) => {
-      // if formula then assign new value to .vl and compute .fn
-      if(value.startsWith('=')) {
-        this.data[row][col].vl = value
-        this.data[row][col].fn = parse_formula(value.substring(1)).fn
-      } else {
-        if(this.data[row][col].tp === CELL_TYPE.NUMBER) {
-          if(isNaN(parseFloat(value))) {
-            console.log(this.data[row][col])
-            // TODO: what should happen here? this is what gets run if the value that is inputted is not a
-            // TODO: number, but should the error be generated here or somewhere else; considering that no
-            // TODO: other input is ever somehow flagged as invalid (you can perfectly well place strings
-            // TODO: in a NUMBER cell using a reference) should this even be an error? I feel like there
-            // TODO: should be stronger safe-guards against this and errors should be displayed using the
-            // TODO: same mechanism rendered markdown is displayed. This means that everything tagged as a
-            // TODO: number should display an error if the content of the cell is not interpretable as a number.
-            // this.data[row][col].vl = "#NaN"
-          } else {
-            this.data[row][col].vl = parseFloat(value)
-          }
-        } else if(this.data[row][col].tp === CELL_TYPE.STRING) {
-          this.data[row][col].vl = value
+    // if formula then assign new value to .vl and compute .fn
+    if(value.startsWith('=')) {
+      this.data[row][col].vl = value
+      this.data[row][col].fn = parse_formula(value.substring(1)).fn // TODO: don't throw away refs
+    } else {
+      if(this.data[row][col].tp === CELL_TYPE.NUMBER) {
+        if(isNaN(parseFloat(value))) {
+          console.log(this.data[row][col])
+          // TODO: what should happen here? this is what gets run if the value that is inputted is not a
+          // TODO: number, but should the error be generated here or somewhere else; considering that no
+          // TODO: other input is ever somehow flagged as invalid (you can perfectly well place strings
+          // TODO: in a NUMBER cell using a reference) should this even be an error? I feel like there
+          // TODO: should be stronger safe-guards against this and errors should be displayed using the
+          // TODO: same mechanism rendered markdown is displayed. This means that everything tagged as a
+          // TODO: number should display an error if the content of the cell is not interpretable as a number.
+          this.data[row][col].error = new Error("#NaN")
+        } else {
+          this.data[row][col].vl = parseFloat(value)
         }
+      } else if(this.data[row][col].tp === CELL_TYPE.STRING) {
+        this.data[row][col].vl = value
       }
-
-      this.update(cell._id)
     }
+
+    this.update(cell._id)
+  }
+
+  render_cell(cell) { // TODO: this function is called ALL THE TIME for EVERY CELL, realistically it only needs to be called on first render and maybe when a cells needs explicit updating
+    console.log('called for cell: ' + generate_col_id_format(cell.col) + (cell.row+1))
 
     const v = this.g(cell.id, cell._id, true, cell._id) // TODO: this might need to change when `g` changes
 
-    const sel_cb = (e, id) => {
-      const [row, col] = id.split('.')
-      if(e.type === 'mousedown')
-        this.setState({selection: {
-          start_x: parseInt(col, 10),
-          start_y: parseInt(row, 10),
-          end_x: parseInt(col, 10),
-          end_y: parseInt(row, 10)
-        }})
-      else if(e.type === 'mouseup')
-        this.setState({selection: {
-          start_x: this.state.selection.start_x,
-          start_y: this.state.selection.start_y,
-          end_x: parseInt(col, 10),
-          end_y: parseInt(row, 10)
-        }})
-      else if(e.type === 'mouseenter' && e.buttons === 1)
-        this.setState({selection: {
-          start_x: this.state.selection.start_x,
-          start_y: this.state.selection.start_y,
-          end_x: parseInt(col, 10),
-          end_y: parseInt(row, 10)
-        }})
-    }
-
-    const handle_arrow_keys = (key, shift, alt, ctrl, preventDefault) => {
-      const sx = { ArrowLeft: -1, ArrowRight: 1 }[key] || 0
-      const sy = { ArrowUp:   -1, ArrowDown:  1 }[key] || 0
-
-      // TODO: ctrl snaps to edge (should also work together with alt)
-
-      // TODO: tab should select the next cell (shift tab inverse; ctrl either no difference or input completely ignored)
-
-      // TODO: if currently at pos1 and using shift to select an area that spans
-      // TODO: from pos1 to pos2 and then pressing an arrow key without shift or
-      // TODO: alt it should act as if the current position is pos2, not pos1
-      // TODO: which is how it currently works
-
-      // TODO: set proper focus to the cell underneath the cursor; this allows pressing enter or similar to start editing
-
-      preventDefault()
-
-      this.setState({selection: {
-        start_x: Math.min(this.state.dimensions.x-1, Math.max(0, this.state.selection.start_x + ((shift && !alt) ? 0 : sx))),
-        start_y: Math.min(this.state.dimensions.y-1, Math.max(0, this.state.selection.start_y + ((shift && !alt) ? 0 : sy))),
-        end_x: Math.min(this.state.dimensions.x-1, Math.max(0, ((alt || shift) ? this.state.selection.end_x : this.state.selection.start_x) + sx)),
-        end_y: Math.min(this.state.dimensions.y-1, Math.max(0, ((alt || shift) ? this.state.selection.end_y : this.state.selection.start_y) + sy)),
-      }, focused: {
-        x: this.state.selection.start_x,
-        y: this.state.selection.start_y
-      }}, _ => {
-        if(this.selectionElement) scroll_into_view_if_needed(this.selectionElement)
-      })
-    }
-
     return (
       <Cell
-      key={row + '.' + col}
-      id={row + '.' + col}
+      key={cell.row + '.' + cell.col}
+      id={cell.row + '.' + cell.col}
       content={format_data(v, cell.tp, cell.stp, cell.r_dec || this.props.options.rounding)}
-      editable={editable}
+      editable={cell.tp === CELL_TYPE.NUMBER || cell.tp === CELL_TYPE.STRING}
       style={cell.style ? cell.style : null}
-      cb={cb}
-      sel_cb={sel_cb}
-      handleArrowKeys={handle_arrow_keys}
+      onValueChange={this.handleCellChange.bind(this, cell)}
+      onMouseEvent={this.handleMouseSelection}
+      onArrowKeyEvent={this.handleKeypress}
       raw_data={cell.fn ? cell.vl : v}
       tp={cell.tp} />
     )

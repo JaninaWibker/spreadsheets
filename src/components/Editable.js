@@ -80,8 +80,8 @@ export default class Editable extends Component {
       if(e.key === 'Enter' || e.key === 'Tab') this.finishEdit()
       else if(e.key === 'Escape') this.cancelEdit()
     } else if(e.target.nodeName === 'SPAN') {
-      if((e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowRight' || e.key === 'ArrowDown') && this.props.handleArrowKeys) {
-        this.props.handleArrowKeys(e.key, e.shiftKey, e.altKey, e.ctrlKey || e.metaKey, e.preventDefault.bind(e))
+      if((e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowRight' || e.key === 'ArrowDown') && this.props.onArrowKeyEvent) {
+        this.props.onArrowKeyEvent(e.key, e.shiftKey, e.altKey, e.ctrlKey || e.metaKey, e.preventDefault.bind(e))
       } else if(e.key === 'Backspace') {
         this.setState({text: '', pretty_text: '', old_text: ''}, x => this.props.cb(''))
       } else if(e.altKey || e.metaKey || e.shiftKey) {
