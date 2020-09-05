@@ -2,7 +2,7 @@ import React, { Component } from 'react'
 import Spreadsheet from './components/Spreadsheet.js'
 import './css/index.css'
 
-import { /*range, createCell, createEmptyCell,*/ createStringCell, /*createNumberCell, createRow, createCol,*/ createTable, fillTableEmpty, fillTableIds, CELL_TYPE } from './util/helpers.js'
+import { /*range, createCell, createEmptyCell, createStringCell, createNumberCell, createRow, createCol, createTable,*/ fillTableEmpty, fillTableIds, CELL_TYPE } from './util/helpers.js'
 import parse_file from './util/file-parser.js'
 
 const file_demo_spreadsheet = parse_file(`

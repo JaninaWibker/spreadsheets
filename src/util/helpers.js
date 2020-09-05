@@ -61,9 +61,9 @@ const format_data = (data, tp, stp, r_dec) => {
 }
 
 // turn "122" into "DS" (zero-based)
-const generate_col_id_format = (row_id) => {
+const generate_col_id_format = (col_id) => {
   let col_name = ''
-  let dividend = Math.floor(Math.abs(row_id + 1))
+  let dividend = Math.floor(Math.abs(col_id + 1))
   let rest
 
   while(dividend > 0) {
@@ -72,6 +72,10 @@ const generate_col_id_format = (row_id) => {
     dividend = parseInt((dividend - rest)/26)
   }
   return col_name
+}
+
+const generate_id_format = ([row_id, col_id]) => {
+  return generate_col_id_format(col_id) + (row_id+1)
 }
 
 // parse "ABC" into 1*26^2 + 2*26^1 * 
@@ -188,7 +192,7 @@ const fillTableIds = (height, width, array) =>
       ? array[y][x]
         ? array[y][x].id
           ? array[y][x]
-          : {tp: undefined, stp: undefined, id: '' + y + '.' + x, _id: [y, x], col: x, row: y, style: {}, vl: undefined, _vl: undefined, err: undefined, fn: undefined, refs: [], changes: [], visited: false, refs: [], changes: [], _vl: undefined, ...array[y][x]}
+          : {tp: undefined, stp: undefined, id: '' + y + '.' + x, _id: [y, x], col: x, row: y, style: {}, vl: undefined, _vl: undefined, err: undefined, fn: undefined, refs: [], changes: [], visited: false, ...array[y][x]}
         : createStringCell([y, x], '**WARNING**: MISSING CELL')
       : createRow(0, width, y, createStringCell(null, '**WARNING**: MISSING CELL'))
   ))
@@ -216,6 +220,7 @@ export default {
   Alphabet,
   alphabet,
   generate_col_id_format,
+  generate_id_format,
   parse_col_id_format,
   parse_cell_id_format,
   CELL_TYPE,
@@ -245,6 +250,7 @@ export {
   Alphabet,
   alphabet,
   generate_col_id_format,
+  generate_id_format,
   parse_col_id_format,
   parse_cell_id_format,
   CELL_TYPE,

@@ -44,7 +44,7 @@ export default class Editable extends Component {
     // console.log(nextProps)
     //console.log(nextProps, this.state)
     const newText = nextProps.raw_data || nextProps.text || nextProps.children
-    if(newText !== this.state.text || this.state.editing) {
+    if(newText !== this.state.text || this.state.editing || nextProps.pretty_text !== this.state.pretty_text) {
       console.log('text has changed: ', newText, this.state.text)
       // console.log({
       //   old_text: newText,

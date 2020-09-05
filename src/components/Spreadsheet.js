@@ -3,7 +3,7 @@ import '../css/spreadsheet.css'
 
 import { BorderCell, Cell } from './Cell.js'
 import Selection from './Selection.js'
-import { range, destructure, default_value, format_data, scroll_into_view_if_needed, is_formula, parse_formula, parse_cell_id_format, generate_col_id_format, CELL_TYPE } from '../util/helpers.js'
+import { range, destructure, default_value, format_data, scroll_into_view_if_needed, is_formula, parse_formula, parse_cell_id_format, generate_col_id_format, generate_id_format, CELL_TYPE } from '../util/helpers.js'
 
 import lib from '../util/stdlib.js'
 
@@ -23,55 +23,56 @@ document.documentElement.style.setProperty('--index-cell-height-px', INDEX_CELL_
 
 const IDENTIFIER_CELLS = {}
 
+const recurse = (data, identifier_cells, cell, origin_cell) => {
+  if(cell.visited) return // already visited; no need to recalculate _vl and do recursing again
+  console.log('calling recurse for ' + generate_id_format(cell._id))
+  cell.refs.forEach(ref_id => {
+    if(origin_cell[0] === ref_id[0] && origin_cell[1] === ref_id[1]) {
+      // recursive data structure / circular references (TODO: does this really catch all recursive data structures?; i don't really think this catches everything :/)
+      throw new Error("circular references")
+    }
+    console.log(ref_id, data[ref_id[0]])
+    const ref = data[ref_id[0]][ref_id[1]]
+    ref.changes.push(cell._id)
+    if(ref.visited) return // already visited this ref; no need to recalcualte _vl and recurse further
+    recurse(data, identifier_cells, ref, origin_cell)
+    if(ref.fn) {
+      ref._vl = ref.fn(cell_id => (get_cell(data, identifier_cells)(cell_id, ref._id, false, origin_cell)), lib)
+    }
+  })
+  if(cell.fn) {
+    cell._vl = cell.fn(cell_id => (get_cell(data, identifier_cells)(cell_id, cell._id, false, origin_cell)), lib)
+  }
+  cell.visited = true
+}
+
+const parse_formulas = (_data, identifier_cells, cell) => {
+  if(cell.name) {
+    identifier_cells[cell.name] = cell._id
+  }
+
+  const {fn, refs} = (is_formula(cell) && parse_formula(cell.vl.substring(1))) || { fn: undefined, refs: [] }
+
+  return { ...cell, fn, refs }
+}
+
+const descend = (data, identifier_cells, cell) => {
+  cell.refs = cell.refs.map(ref => typeof(ref) === 'string' ? lookup(ref, identifier_cells) : ref) // transform all refs into the [col, row] format
+  console.warn(cell)
+  if(cell.refs.find(ref => ref[0] === cell.row && ref[1] === cell.col)) {
+    cell.err = new Error("self-references not allowed")
+  } else {
+    recurse(data, identifier_cells, cell, cell._id)
+  }
+  return cell
+}
 
 const transform = (data, identifier_cells) => {
-
-  const recurse = (data, cell, origin_cell) => {
-    if(cell.visited) return // already visited; no need to recalculate _vl and do recursing again
-    cell.refs.forEach(ref_id => {
-      if(origin_cell[0] === ref_id[0] && origin_cell[1] === ref_id[1]) {
-        // recursive data structure / circular references (TODO: does this really catch all recursive data structures?; i don't really think this catches everything :/)
-        throw new Error("circular references")
-      }
-      console.log(ref_id, data[ref_id[0]])
-      const ref = data[ref_id[0]][ref_id[1]]
-      if(ref.visited) return // already visited this ref; no need to recalcualte _vl and recurse further
-      ref.changes.push(cell._id)
-      recurse(data, ref, origin_cell)
-      if(ref.fn) {
-        ref._vl = ref.fn(cell_id => (get_cell(data, identifier_cells)(cell_id, ref._id, false, origin_cell)), lib)
-      }
-    })
-    if(cell.fn) {
-      cell._vl = cell.fn(cell_id => (get_cell(data, identifier_cells)(cell_id, cell._id, false, origin_cell)), lib)
-    }
-    cell.visited = true
-  }
-
-  const parse_formulas = (_data, identifier_cells, cell) => {
-    if(cell.name) {
-      identifier_cells[cell.name] = cell._id
-    }
-  
-    const {fn, refs} = (is_formula(cell) && parse_formula(cell.vl.substring(1))) || { fn: undefined, refs: [] }
-  
-    return { ...cell, fn, refs }
-  }
-
-  const descend = (data, identifier_cells, cell) => {
-    cell.refs = cell.refs.map(ref => typeof(ref) === 'string' ? lookup(ref, identifier_cells) : ref) // transform all refs into the [col, row] format
-    console.warn(cell)
-    if(cell.refs.find(ref => ref[0] === cell.row && ref[1] === cell.col)) {
-      cell.err = new Error("self-references not allowed")
-    } else {
-      recurse(data, cell, cell._id)
-    }
-    return cell
-  }
 
   const new_data = data
     .map((row, _i, current_data) => row.map(cell => parse_formulas(current_data, identifier_cells, cell)))
     .map((row, _i, current_data) => row.map(cell => descend(current_data, identifier_cells, cell)))
+    .map((row)                   => row.map(cell => ({...cell, visited: false})))
 
 
 
@@ -98,65 +99,64 @@ const lookup = (cell_id, identifier_cells) => {
   }
 }
 
-const get_cell = (data, identifier_cells) => (cell, call_cell, byRender=false, rec_call_cell) => {
+// target is the cell for which the value should be returned
+// call_cell is the cell that initiated the whole recursive descend
+// byRender skips a check for circular calls as the caller (usually identified by call_cell) is not an actual cell but the renderer
+// rec_call_cell is the direct caller; meaning the target of the call one stack frame lower on the call stack
+const get_cell = (data, identifier_cells) => (target, call_cell, byRender=false, rec_call_cell) => {
   // console.log(cell, call_cell, byRender, rec_call_cell)
 
-  const pair = lookup(cell, identifier_cells)
+  const pair = lookup(target, identifier_cells)
 
   if(!pair) {
     throw Error('not a valid Cell (named cell not defined or mistakenly identified as identifier (if this is what happened, you probably have an error in your selector))')
   }
 
   const [c_row, c_col] = pair
-  const c = data[c_row][c_col]
-
-  // const cs = call_cell
-  // const cc = data[cs[0]][cs[1]]
+  const cell = data[c_row][c_col]
 
   const [rc_row, rc_col] = rec_call_cell
   const rcc = data[rc_row][rc_col]
 
-  if(c === undefined) {
-    console.log(cell, call_cell, c)
+  if(cell === undefined) {
+    console.log(target, call_cell, cell)
     return '<error>'
   }
 
-  if(c.tp === CELL_TYPE.EMPTY) return ''
-  if(c.tp === CELL_TYPE.NUMBER || c.tp === CELL_TYPE.STRING) {
+  if(cell.tp === CELL_TYPE.EMPTY) return ''
+  if(cell.tp === CELL_TYPE.NUMBER || cell.tp === CELL_TYPE.STRING) {
 
     // add 'changes'-array to the current cell including the caller of g (the previous function in the callstack, (and the cell of this function))
     // if the array does exist already, the id of the cell is just pushed to it
     if(c_row !== rc_row || c_col !== rc_col) {
-      console.log('caller', rcc, 'current', c)
+      console.log('caller', rcc, 'current', cell)
 
-      if(Array.isArray(c.changes) && !c.changes.includes(rcc.id)) { // TODO: this technically needs to be more sophisticated now as ids aren't just strings anymore but this code will be removed soon so it shouldn't really matter
-        // c.changes.push(rcc.id)
-      } else if(!Array.isArray(c.changes)) {
-        // c.changes = [rcc.id]
+      if(Array.isArray(cell.changes) && !cell.changes.includes(rcc.id)) { // TODO: this technically needs to be more sophisticated now as ids aren't just strings anymore but this code will be removed soon so it shouldn't really matter
+        // c.changes.push(rcc._id)
       }
 
 
-      console.log(destructure(rcc, ['id', 'changes', 'visited']), destructure(c, ['id', 'changes', 'visited']))
+      console.log(destructure(rcc, ['id', 'changes', 'visited']), destructure(cell, ['id', 'changes', 'visited']))
     }
 
-    if(!c.fn) return c.vl
-    if(c.fn) {
+    if(!cell.fn) return cell.vl
+    if(cell.fn) {
       // if already calculated then add visited = true, else check if it is a circular call and if it is
       // return the default value for this data type, else calculate the value by executing the function
-      if(c.visited === false) {
+      if(cell.visited === false) {
         if(c_row !== call_cell[0] || c_col !== call_cell[1] || byRender) {
-          console.log(c.id, rcc.id)
-          c._vl = c.fn(id => get_cell(data, identifier_cells)(id, call_cell, false, c._id), lib) // TODO: this might need to change when `g` changes
+          console.log(cell.id, rcc.id)
+          cell._vl = cell.fn(id => get_cell(data, identifier_cells)(id, call_cell, false, cell._id), lib) // TODO: this might need to change when `g` changes
         } else {
-          c._vl = c.vl || default_value(c.tp)
+          cell._vl = cell.vl || default_value(cell.tp)
         }
       }
 
-      c.visited = true
+      cell.visited = true
 
-      return c._vl
+      return cell._vl
     }
-  } else return c.vl
+  } else return cell.vl
 }
 
 export default class Spreadsheet extends Component {
@@ -280,16 +280,27 @@ export default class Spreadsheet extends Component {
 
   handleCellChange = (cell, value) => {
     const [row, col] = cell._id
+
     if(cell.name) {
-      IDENTIFIER_CELLS[cell.name] = cell._id // TODO: this is not necessary on first render; it might however be necessary after modifying a cell (once actually naming cells is implemented; don't know how that would be done though)
+      IDENTIFIER_CELLS[cell.name] = cell._id
     }
+
+    // nothing has changed (this check only works if vl is a string; numbers are explicitly checked again later on)
+    if(value === cell.vl) return
+
+    // used to compute which cells need to have their changes array updated
+    const old_refs = this.data[row][col].refs
+
     // if formula then assign new value to .vl and compute .fn
     if(value.startsWith('=')) {
+      const {fn, refs} = parse_formula(value.substring(1))
       this.data[row][col].vl = value
-      this.data[row][col].fn = parse_formula(value.substring(1)).fn // TODO: don't throw away refs
+      this.data[row][col].fn = fn
+      this.data[row][col].refs = refs
     } else {
       if(this.data[row][col].tp === CELL_TYPE.NUMBER) {
-        if(isNaN(parseFloat(value))) {
+        const parsed_value = parseFloat(value)
+        if(isNaN(parsed_value)) {
           console.log(this.data[row][col])
           // TODO: what should happen here? this is what gets run if the value that is inputted is not a
           // TODO: number, but should the error be generated here or somewhere else; considering that no
@@ -300,20 +311,94 @@ export default class Spreadsheet extends Component {
           // TODO: number should display an error if the content of the cell is not interpretable as a number.
           this.data[row][col].error = new Error("#NaN")
         } else {
-          this.data[row][col].vl = parseFloat(value)
+          // nothing has changed (had to parse to a number first to check this)
+          if(parsed_value === cell.vl) return
+          this.data[row][col].vl = parsed_value
         }
       } else if(this.data[row][col].tp === CELL_TYPE.STRING) {
         this.data[row][col].vl = value
       }
     }
 
+    // when updating a cell the data structure becomes somewhat invalid:
+    // each cell has a refs array and a changes array. The only thing that
+    // can happen when editing a single cell is that the refs array of this cell
+    // becomes out of date and thereby also the changes arrays of the cells that
+    // are no longer part of the refs array and the ones newly added need to be
+    // updated accordingly.
+    // The fact that this only needs a little bit of updating is good as no complex
+    // code has to be written. The most complex thing is probably finding out
+    // which cells need to have their changes array updated.
+
+    this.data[row][col].refs = this.data[row][col].refs.map(ref => typeof(ref) === 'string' ? lookup(ref, IDENTIFIER_CELLS) : ref)
+    if(this.data[row][col].refs.find(ref => ref[0] === this.data[row][col].row && ref[1] === this.data[row][col].col)) {
+      this.data[row][col].err = new Error("self-references not allowed")
+    } else {
+      const new_refs = this.data[row][col].refs
+      const arr = old_refs.map(ref => ({ from: 'old', value: ref }))
+
+      // this basically calculates (A u B) \ (A n B) while also saving from which array each element is from
+      new_refs.forEach(ref => {
+        const idx = arr.findIndex(item => item.value[0] === ref[0] && item.value[1] === ref[1])
+        if(idx !== -1) {
+          arr.splice(idx, 1)
+        } else {
+          arr.push({ from: 'new', value: ref })
+        }
+      })
+
+      // from === 'old' -> deletion
+      // from === 'new' -> addition
+      arr.forEach(pair => {
+        switch(pair.from) {
+          case 'old': {
+            this.data[pair.value[0]][pair.value[1]].changes = this.data[pair.value[0]][pair.value[1]].changes.filter(ref =>
+              ref[0] !== cell.row || ref[1] !== cell.col
+            )
+            console.log('in cell ' + generate_id_format(pair.value) + ' remove ' + generate_id_format(cell._id) + ' from changes')
+          } break;
+          case 'new': {
+            this.data[pair.value[0]][pair.value[1]].changes.push(cell._id)
+            console.log('in cell ' + generate_id_format(pair.value) + ' add ' + generate_id_format(cell._id) + ' to changes')
+          } break;
+        }
+      })
+    }
+
+    // a lot of stuff needs to be recalculated
+    // loop through every cell mentioned in the changes array and recursively descend from there and update all of their values;
+    // as elements "higher up" in the tree are being used by ones lower in the tree the higher up ones need to have been evaluated
+    // before traversing further down.
+    // Side Note: it's not actually a tree as two leaves can both update the same cell, so it actually is only a directed graph
+    // but some cells are visited multiple times by different leaves and could re-evaluated so they could be seen as multiple
+    // nodes in a sense. With this bending of the definition it would be a tree again.
+    // For programming purposes it can be thought of as a tree.
+    const recurse = (cell, caller) => {
+      const self = generate_id_format(cell._id)
+      console.log(caller + ' -> ' + self, cell.vl)
+      console.assert(is_formula(cell), cell)
+
+      try {
+        cell._vl = cell.fn(cell_id => (this.g(cell_id, cell._id, false, this.data[row][col]._id)), lib)
+        console.log(generate_id_format(cell._id) + ' updated to ' + cell._vl)
+        // TODO: handle format errors here as well?
+      } catch(err) {
+        cell.err = err
+      }
+
+      cell.changes.map(([row, col]) => recurse(this.data[row][col], self))
+
+    }
+    this.data[row][col].changes.map(([row, col]) => recurse(this.data[row][col], generate_id_format(cell._id)))
+
     this.update(cell._id)
   }
 
   render_cell(cell) { // TODO: this function is called ALL THE TIME for EVERY CELL, realistically it only needs to be called on first render and maybe when a cells needs explicit updating
-    console.log('called for cell: ' + generate_col_id_format(cell.col) + (cell.row+1))
 
     const v = this.g(cell.id, cell._id, true, cell._id) // TODO: this might need to change when `g` changes
+
+    // console.log('called for cell: ' + generate_id_format(cell._id) + ' new value: ' + v)
 
     return (
       <Cell
