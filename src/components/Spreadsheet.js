@@ -26,25 +26,53 @@ const IDENTIFIER_CELLS = {}
 
 const transform = (data, identifier_cells) => {
 
-
-  const new_data = data.map(row =>
-    row.map(cell => {
-      if(cell.name) {
-        identifier_cells[cell.name] = cell._id
+  const recurse = (data, cell, origin_cell) => {
+    if(cell.visited) return // already visited; no need to recalculate _vl and do recursing again
+    cell.refs.forEach(ref_id => {
+      if(origin_cell[0] === ref_id[0] && origin_cell[1] === ref_id[1]) {
+        // recursive data structure / circular references (TODO: does this really catch all recursive data structures?; i don't really think this catches everything :/)
+        throw new Error("circular references")
       }
-
-      const {fn, refs} = (is_formula(cell) && parse_formula(cell.vl.substring(1))) || { fn: undefined, refs: [] }
-
-      return { ...cell, fn, refs }
-    }).map(cell => {
-      cell.refs = cell.refs.map(ref => typeof(ref) === 'string' ? lookup(ref, identifier_cells) : ref)
-      
-      if(cell.refs.find(ref => ref[0] === cell.row && ref[1] === cell.col)) {
-        cell.err = new Error("self-references not allowed")
+      console.log(ref_id, data[ref_id[0]])
+      const ref = data[ref_id[0]][ref_id[1]]
+      if(ref.visited) return // already visited this ref; no need to recalcualte _vl and recurse further
+      ref.changes.push(cell._id)
+      recurse(data, ref, origin_cell)
+      if(ref.fn) {
+        ref._vl = ref.fn(cell_id => (get_cell(data, identifier_cells)(cell_id, ref._id, false, origin_cell)), lib)
       }
-      return cell
     })
-  )
+    if(cell.fn) {
+      cell._vl = cell.fn(cell_id => (get_cell(data, identifier_cells)(cell_id, cell._id, false, origin_cell)), lib)
+    }
+    cell.visited = true
+  }
+
+  const parse_formulas = (_data, identifier_cells, cell) => {
+    if(cell.name) {
+      identifier_cells[cell.name] = cell._id
+    }
+  
+    const {fn, refs} = (is_formula(cell) && parse_formula(cell.vl.substring(1))) || { fn: undefined, refs: [] }
+  
+    return { ...cell, fn, refs }
+  }
+
+  const descend = (data, identifier_cells, cell) => {
+    cell.refs = cell.refs.map(ref => typeof(ref) === 'string' ? lookup(ref, identifier_cells) : ref) // transform all refs into the [col, row] format
+    console.warn(cell)
+    if(cell.refs.find(ref => ref[0] === cell.row && ref[1] === cell.col)) {
+      cell.err = new Error("self-references not allowed")
+    } else {
+      recurse(data, cell, cell._id)
+    }
+    return cell
+  }
+
+  const new_data = data
+    .map((row, _i, current_data) => row.map(cell => parse_formulas(current_data, identifier_cells, cell)))
+    .map((row, _i, current_data) => row.map(cell => descend(current_data, identifier_cells, cell)))
+
 
 
   return new_data
@@ -70,9 +98,6 @@ const lookup = (cell_id, identifier_cells) => {
   }
 }
 
-// TODO: improve the way cells are labelled / identified
-
-// g stands for get and was used directly before a proper excel syntax parser was implemented, that is why the name is so short
 const get_cell = (data, identifier_cells) => (cell, call_cell, byRender=false, rec_call_cell) => {
   // console.log(cell, call_cell, byRender, rec_call_cell)
 
@@ -118,7 +143,7 @@ const get_cell = (data, identifier_cells) => (cell, call_cell, byRender=false, r
     if(c.fn) {
       // if already calculated then add visited = true, else check if it is a circular call and if it is
       // return the default value for this data type, else calculate the value by executing the function
-      if(c.visited === undefined || c.visited === false) {
+      if(c.visited === false) {
         if(c_row !== call_cell[0] || c_col !== call_cell[1] || byRender) {
           console.log(c.id, rcc.id)
           c._vl = c.fn(id => get_cell(data, identifier_cells)(id, call_cell, false, c._id), lib) // TODO: this might need to change when `g` changes
@@ -254,7 +279,7 @@ export default class Spreadsheet extends Component {
   }
 
   handleCellChange = (cell, value) => {
-    const [col, row] = cell._id
+    const [row, col] = cell._id
     if(cell.name) {
       IDENTIFIER_CELLS[cell.name] = cell._id // TODO: this is not necessary on first render; it might however be necessary after modifying a cell (once actually naming cells is implemented; don't know how that would be done though)
     }
