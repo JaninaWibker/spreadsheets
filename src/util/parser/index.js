@@ -63,7 +63,6 @@ const get_refs = ast => {
       return get_refs(ast.val)
     }
     case 'range': {
-      console.log(ast.val)
       const x1 = parse_col_id_format(ast.val[0].val[0])
       const x2 = parse_col_id_format(ast.val[1].val[0])
       const y1 = ast.val[0].val[1] - 1
@@ -144,7 +143,6 @@ const compile_inner = ast => {
     case 'unary_minus':           return _compile_unary_operator('-', ast.val)
 
     case 'range': {
-      console.log(ast.val)
       const x1 = parse_col_id_format(ast.val[0].val[0])
       const x2 = parse_col_id_format(ast.val[1].val[0])
       const y1 = ast.val[0].val[1] - 1
@@ -159,12 +157,9 @@ const compile_inner = ast => {
 
       for(let row = tly; row <= bry; row++) {
         for(let col = tlx; col <= brx; col++) {
-          console.log('cell:', row, col)
           results.push(`g('${row}.${col}')`) // TODO: this might need to change when `g` changes
         }
       }
-
-      console.log(results)
 
       return `[${results.join(', ')}]`
     }

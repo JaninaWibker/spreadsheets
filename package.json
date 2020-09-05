@@ -14,7 +14,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "nearley-excel": "nearleyc src/util/parser/excel.ne -o src/util/parser/excel.js",
+    "nearley-strings": "nearleyc src/util/parser/string.ne -o src/util/parser/string.js"
   },
   "browserslist": {
     "production": [

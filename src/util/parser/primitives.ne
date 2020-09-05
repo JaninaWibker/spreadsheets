@@ -11,7 +11,7 @@ primitive -> boolean                {% ([fst]) => ({ type: 'boolean', val: fst }
 number -> %digits                                           {% ([fst]) => parseInt(fst, 10) %}
         | %digits %dot (%digits):?                          {% ([fst, _, snd]) => parseFloat(fst + (snd ? '.' + snd : '')) %}
         # | %digits %dot %digits %e %plus_minus:? %digits     {% ([fst, _, snd, __, trd, fth]) => parseFloat(fst + '.' + snd + 'e' + (trd || '+') + fth) %}
-        # | %digits %e %plus_minus:? %digits                  {% ([fst, _, snd, trd]) => (console.log(fst, _, snd, trd), parseFloat(fst + 'e' + (snd || '+') + trd)) %}
+        # | %digits %e %plus_minus:? %digits                  {% ([fst, _, snd, trd]) => parseFloat(fst + 'e' + (snd || '+') + trd) %}
 
 _exp -> %e %plus_minus:? %digits                            {% ([_, fst, snd]) => (fst || '+') + snd %}
 
