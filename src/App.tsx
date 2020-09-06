@@ -1,11 +1,12 @@
 import React, { Component } from 'react'
-import SpreadsheetComp from './components/Spreadsheet.js'
+import SpreadsheetComp from './components/SpreadsheetComp'
 import './css/index.css'
 
 import type { Spreadsheet } from './types/Spreadsheet'
+import { CellType } from './types/CellTypes'
 
-import { /*range, createCell, createEmptyCell, createStringCell, createNumberCell, createRow, createCol, createTable,*/ fillTableEmpty, fillTableIds, CELL_TYPE } from './util/helpers.js'
-import parse_file from './util/file-parser.js'
+import { /*range, createCell, createEmptyCell, createStringCell, createNumberCell, createRow, createCol, createTable,*/ fillTableEmpty, fillTableIds } from './util/helpers'
+import parse_file from './util/file-parser'
 
 const file_demo_spreadsheet = parse_file(`
 ---
@@ -18,7 +19,7 @@ index_cell.height: 25
 [{ "tp": "S", "vl": "**test2**", "style": { "fontFamily": "Menlo" } }, { "tp": "N", "vl": 5, "name": "thisIsSomeName" } ]
 [{ "tp": "S", "vl": "\`123\`: blub" }, { "tp": "N", "vl": "=A1:A1" } ]
 [ { "tp": "S", "vl": "=pi" }, { "tp": "N", "vl": "=thisIsSomeName" } ]
-[ { "tp": "E" }, { "tp": "S", "vl": "=IF(B1 > 5, \\"true\\", \\"false\\")", "name": "blub" } ]`)
+[ { "tp": "E" }, { "tp": "S", "vl": "=IF(B1 > 5, \\"true\\", \\"false\\")", "name": "blub" } ]`, 'file_demo_spreadsheet')
 
 const demo_spreadsheet: Spreadsheet = {
   options: {
@@ -30,16 +31,16 @@ const demo_spreadsheet: Spreadsheet = {
   },
   // data: createTable(0, 0, 26, 28, createStringCell([null, null], "")),
   data: fillTableIds(4, 2, fillTableEmpty(4, 2, [
-    [{tp: CELL_TYPE.STRING, vl: '**test**', style: {fontFamily: 'Menlo'}}, {tp: CELL_TYPE.NUMBER, vl: 5, name: 'thisIsSomeName'}],
-    [{tp: CELL_TYPE.STRING, vl: '`123`: blub'},                            {tp: CELL_TYPE.NUMBER, vl: '=A1:A1'}],
-    [{tp: CELL_TYPE.STRING, vl: '=pi'}],
-    [{tp: CELL_TYPE.EMPTY},                                                {tp: CELL_TYPE.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
+    [{tp: CellType.STRING, vl: '**test**', style: {fontFamily: 'Menlo'}}, {tp: CellType.NUMBER, vl: 5, name: 'thisIsSomeName'}],
+    [{tp: CellType.STRING, vl: '`123`: blub'},                            {tp: CellType.NUMBER, vl: '=A1:A1'}],
+    [{tp: CellType.STRING, vl: '=pi'}],
+    [{tp: CellType.EMPTY, vl: ''},                                        {tp: CellType.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
   ])),
   // data: fillTableIds(4, 2, fillTableEmpty(4, 2, [
-  //   [{tp: CELL_TYPE.NUMBER, vl: 5},     {tp: CELL_TYPE.NUMBER, vl: '=A1'}],
-  //   [{tp: CELL_TYPE.NUMBER, vl: '=B1'}, {tp: CELL_TYPE.NUMBER, vl: '=B3'}],
-  //   [{tp: CELL_TYPE.NUMBER, vl: '=A3'}, {tp: CELL_TYPE.NUMBER, vl: 0}],
-  //   [{tp: CELL_TYPE.NUMBER, vl: 0},     {tp: CELL_TYPE.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
+  //   [{tp: CellType.NUMBER, vl: 5},     {tp: CellType.NUMBER, vl: '=A1'}],
+  //   [{tp: CellType.NUMBER, vl: '=B1'}, {tp: CellType.NUMBER, vl: '=B3'}],
+  //   [{tp: CellType.NUMBER, vl: '=A3'}, {tp: CellType.NUMBER, vl: 0}],
+  //   [{tp: CellType.NUMBER, vl: 0},     {tp: CellType.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
   // ])),
   name: 'demo_spreadsheet'
 }
@@ -49,7 +50,7 @@ interface IProps {
 }
 
 interface IState {
-  spreadsheet: any,
+  spreadsheet: Spreadsheet,
   update?: any,
   cb: any
 }
@@ -71,12 +72,10 @@ class App extends Component<IProps, IState> {
     }
   }
 
-  loadSpreadsheet(options: any, data: any, name: any) {
-    console.log({
-      spreadsheet: { options, data, name }
-    })
+  loadSpreadsheet(spreadsheet: Spreadsheet) {
+    console.log(spreadsheet)
     this.setState({
-      spreadsheet: { options, data, name }
+      spreadsheet: spreadsheet
     })
   }
 
@@ -90,7 +89,7 @@ class App extends Component<IProps, IState> {
             name={this.state.spreadsheet.name}
             cb={this.state.cb} />
         </div>
-        <button onClick={() => this.loadSpreadsheet(file_demo_spreadsheet.options, file_demo_spreadsheet.data, 'file_demo_spreadsheet')}>load other spreadsheet</button>
+        <button onClick={() => this.loadSpreadsheet(file_demo_spreadsheet)}>load other spreadsheet</button>
       </div>
     )
   }

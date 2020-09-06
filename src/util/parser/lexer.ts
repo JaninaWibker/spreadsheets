@@ -1,4 +1,4 @@
-const moo = require('moo')
+import moo from 'moo'
 
 const lexer = moo.compile({
 
@@ -47,4 +47,4 @@ lexer.next = (next => () => {
   return tok;
 })(lexer.next);
 
-module.exports = lexer
+export default lexer

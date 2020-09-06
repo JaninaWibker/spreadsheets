@@ -1,39 +1,61 @@
-export enum CellType {
-  NUMBER,
-  STRING,
-  EMPTY
-}
-
-export enum CellSubType {
-  PERCENTAGE,
-  UPPERCASE,
-  LOWERCASE
-}
+import { CellType, CellSubType } from './CellTypes'
+import type { LibType } from '../util/stdlib'
 
 export type CellId = [number, number]
 
-export type Cell = {
+export type CellEvaluateFn = (g: any, lib: LibType) => number | string
+
+export type UnfinishedCell = {
   tp: CellType,
-  stp: CellSubType,
+  stp?: CellSubType,
+  style?: object,
+  vl: number | string,
+  _vl?: number | string,
+  err?: Error,
+  name?: string
+}
+
+export type Cell = UnfinishedCell & {
+  tp: CellType,
+  stp?: CellSubType,
   id: string,
   _id: CellId,
   col: number,
   row: number,
-  style: object,
+  style?: object,
   vl: number | string,
   _vl: number | string,
-  err: Error,
-  fn?: () => number | string,
+  err?: Error,
+  fn?: CellEvaluateFn,
   refs: CellId[],
   changes: CellId[],
-  visited: boolean
+  visited: boolean,
+  name?: string,
+  r_dec?: number // number of decimal places after the period
 }
 
+export type NumberCell = Cell & {
+  tp: CellType.NUMBER,
+  _vl: number,
+  fn?: () => number
+}
+
+export type StringCell = Cell & {
+  tp: CellType.STRING,
+  _vl: string,
+  fn?: () => string
+}
+
+export type EmptyCell = Cell & {
+  tp: CellType.EMPTY
+}
+
+export type SpreadsheetOptions = {
+  rounding: number
+}
 
 export type Spreadsheet = {
-  options: {
-    rounding: number
-  },
+  options: SpreadsheetOptions
   data: Cell[][],
   name: string
 }
