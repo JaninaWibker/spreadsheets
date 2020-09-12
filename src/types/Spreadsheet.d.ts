@@ -3,7 +3,7 @@ import type { LibType } from '../util/stdlib'
 
 export type CellId = [number, number]
 
-export type CellEvaluateFn = (g: any, lib: LibType) => number | string
+export type CellEvaluateFn = (g: (id: string) => number | string | undefined, lib: LibType) => number | string
 
 export type UnfinishedCell = {
   tp: CellType,

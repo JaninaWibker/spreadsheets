@@ -1,4 +1,4 @@
-import { parse_col_id_format } from '../helpers'
+import { parse_col_id_format } from '../cell_id'
 
 import type { AST } from '../../types/AST'
 
@@ -7,9 +7,9 @@ import nearley from 'nearley'
 import { raw_excel_grammar, raw_string_grammar } from './grammars.js'
 import { CellId } from '../../types/Spreadsheet'
 
-// @ts-ignore(2345): this is a bug in nearley or moo (the tokenizer); there is a [github issue](https://github.com/kach/nearley/issues/527) for it with a really really hacky solution. TODO: has this been fixed yet?
+// @ts-ignore(2345): this is a bug in nearley or moo (the tokenizer); there is a [github issue](https://github.com/kach/nearley/issues/527) for it with a really really hacky solution. // TODO: has this been fixed yet?
 const excel_grammar = nearley.Grammar.fromCompiled(raw_excel_grammar)
-// @ts-ignore(2345): this is a bug in nearley or moo (the tokenizer); there is a [github issue](https://github.com/kach/nearley/issues/527) for it with a really really hacky solution. TODO: has this been fixed yet?
+// @ts-ignore(2345): this is a bug in nearley or moo (the tokenizer); there is a [github issue](https://github.com/kach/nearley/issues/527) for it with a really really hacky solution. // TODO: has this been fixed yet?
 const string_grammar = nearley.Grammar.fromCompiled(raw_string_grammar)
 
 const _compile_binary_operator = (op: string, [fst, snd]: [AST, AST]): string => `${compile_inner(fst)} ${op} ${compile_inner(snd)}`

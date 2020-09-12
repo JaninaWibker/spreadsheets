@@ -3,17 +3,20 @@ import '../css/spreadsheet.css'
 
 import { BorderCell, Cell as NormalCell } from './Cell'
 import Selection from './Selection'
-import { range, destructure, default_value, format_data, scroll_into_view_if_needed, is_formula, parse_formula, parse_cell_id_format, generate_col_id_format, generate_id_format } from '../util/helpers'
+import { range, format_data, scroll_into_view_if_needed, parse_formula, lookup } from '../util/helpers'
+import { generate_col_id_format, generate_id_format } from '../util/cell_id'
+import { get_cell, transform } from '../util/cell_transform'
+import type { getCellCurried } from '../util/cell_transform'
 import { CellType } from '../types/CellTypes'
 import type { Cell, CellId, SpreadsheetOptions } from '../types/Spreadsheet'
 
 import lib from '../util/stdlib'
 
 // constants for width/height of cells
-const CELL_WIDTH = 224
+const CELL_WIDTH = 224 // TODO: apparently this should be configurable via this.props.options (don't know if this is really needed though)
 const CELL_HEIGHT = 25
 
-const INDEX_CELL_WIDTH = 80
+const INDEX_CELL_WIDTH = 80 // TODO: these are just the border cells or am I wrong?
 const INDEX_CELL_HEIGHT = 25
 
 // settings associated css variables in order to be able to access these constants from within css
@@ -24,147 +27,6 @@ document.documentElement.style.setProperty('--index-cell-width-px', INDEX_CELL_W
 document.documentElement.style.setProperty('--index-cell-height-px', INDEX_CELL_HEIGHT + 'px');
 
 const IDENTIFIER_CELLS: { [key: string]: CellId } = {}
-
-const recurse = (data: Cell[][], identifier_cells: { [key: string]: CellId }, cell: Cell, origin_cell: CellId) => {
-  if(cell.visited) return // already visited; no need to recalculate _vl and do recursing again
-  console.log('calling recurse for ' + generate_id_format(cell._id))
-  cell.refs.forEach(ref_id => {
-    if(origin_cell[0] === ref_id[0] && origin_cell[1] === ref_id[1]) {
-      // recursive data structure / circular references (TODO: does this really catch all recursive data structures?; i don't really think this catches everything :/)
-      throw new Error("circular references")
-    }
-    console.log(ref_id, data[ref_id[0]])
-    const ref = data[ref_id[0]][ref_id[1]]
-    ref.changes.push(cell._id)
-    if(ref.visited) return // already visited this ref; no need to recalcualte _vl and recurse further
-    recurse(data, identifier_cells, ref, origin_cell)
-    if(ref.fn) {
-      ref._vl = ref.fn((cell_id: string) => (get_cell(data, identifier_cells)(cell_id, ref._id, false, origin_cell)), lib)
-      console.log('calculated value for cell ' + generate_id_format(ref._id) + ' (' + ref._vl + ')')
-    }
-  })
-  if(cell.fn) {
-    cell._vl = cell.fn((cell_id: string) => (get_cell(data, identifier_cells)(cell_id, cell._id, false, origin_cell)), lib)
-    console.log('calculated value for cell ' + generate_id_format(cell._id) + ' (' + cell._vl + ')')
-  }
-  cell.visited = true
-}
-
-const parse_formulas = (_data: Cell[][], identifier_cells: { [key: string]: CellId }, cell: Cell) => {
-  if(cell.name) {
-    identifier_cells[cell.name] = cell._id // TODO: should this be CellId or Cell?
-  }
-
-  const {fn, refs} = (is_formula(cell) && parse_formula((cell.vl as string).substring(1))) || { fn: undefined, refs: [] }
-
-  return { ...cell, fn, refs }
-}
-
-const descend = (data: Cell[][], identifier_cells: { [key: string]: CellId }, cell: Cell) => {
-  cell.refs = cell.refs.map((ref: CellId) => typeof(ref) === 'string' ? lookup(ref, identifier_cells) : ref) as CellId[] // transform all refs into the [col, row] format
-  console.warn(cell)
-  if(cell.refs.find((ref: CellId) => ref[0] === cell.row && ref[1] === cell.col)) {
-    cell.err = new Error("self-references not allowed")
-  } else {
-    console.log('-- recurse --')
-    recurse(data, identifier_cells, cell, cell._id)
-  }
-  return cell
-}
-
-const transform = (data: Cell[][], identifier_cells: { [key: string]: CellId }) => {
-
-  const new_data = data
-    .map((row, _i, current_data) => row.map(cell => parse_formulas(current_data, identifier_cells, cell)))
-    .map((row, _i, current_data) => row.map(cell => descend(current_data, identifier_cells, cell)))
-    .map((row)                   => row.map(cell => ({...cell, visited: false})))
-
-
-  console.log("transformed", new_data)
-
-  return new_data
-}
-
-// this supports "ABC321", "123.123" as well as named references as cell formats
-// returns null when cell not found
-const lookup = (cell_id: string, identifier_cells: { [key: string]: CellId }): [number, number] | null => {
-  
-  // this supports both "ABC321", "123.123" as cell formats
-  const pair = parse_cell_id_format(cell_id)
-
-  // support for named references / identifiers
-  if(!pair) {
-    const identifierMatch = cell_id.match(/^[a-zA-Z_][a-zA-Z_0-9]*$/)
-    if(identifierMatch && identifier_cells[identifierMatch[0]]) {
-      return identifier_cells[identifierMatch[0]] // identifier (like variable names)
-      // TODO: should this return Cell or CellId?
-    } else {
-      return null
-    }
-  } else {
-    return pair
-  }
-}
-
-// target is the cell for which the value should be returned
-// call_cell is the cell that initiated the whole recursive descend
-// byRender skips a check for circular calls as the caller (usually identified by call_cell) is not an actual cell but the renderer
-// rec_call_cell is the direct caller; meaning the target of the call one stack frame lower on the call stack
-const get_cell = (data: Cell[][], identifier_cells: { [key: string]: CellId }) => (target: string, call_cell: CellId, byRender=false, rec_call_cell: CellId) => {
-  // console.log(cell, call_cell, byRender, rec_call_cell)
-
-  const pair = lookup(target, identifier_cells)
-
-  if(!pair) {
-    throw Error('not a valid Cell (named cell not defined or mistakenly identified as identifier (if this is what happened, you probably have an error in your selector))')
-  }
-
-  const [c_row, c_col] = pair
-  const cell = data[c_row][c_col]
-
-  const [rc_row, rc_col] = rec_call_cell
-  const rcc = data[rc_row][rc_col]
-
-  if(cell === undefined) {
-    console.log(target, call_cell, cell)
-    return '<error>'
-  }
-
-  if(cell.tp === CellType.EMPTY) return ''
-  if(cell.tp === CellType.NUMBER || cell.tp === CellType.STRING) {
-
-    // add 'changes'-array to the current cell including the caller of g (the previous function in the callstack, (and the cell of this function))
-    // if the array does exist already, the id of the cell is just pushed to it
-    if(c_row !== rc_row || c_col !== rc_col) {
-      console.log('caller', rcc, 'current', cell)
-
-      // if(Array.isArray(cell.changes) && !cell.changes.includes(rcc.id)) { // TODO: this technically needs to be more sophisticated now as ids aren't just strings anymore but this code will be removed soon so it shouldn't really matter
-      //   // c.changes.push(rcc._id)
-      // }
-
-
-      console.log(destructure(rcc, ['id', 'changes', 'visited']), destructure(cell, ['id', 'changes', 'visited']))
-    }
-
-    if(!cell.fn) return cell.vl
-    if(cell.fn) {
-      // if already calculated then add visited = true, else check if it is a circular call and if it is
-      // return the default value for this data type, else calculate the value by executing the function
-      if(cell.visited === false) {
-        if(c_row !== call_cell[0] || c_col !== call_cell[1] || byRender) {
-          console.log(cell.id, rcc.id)
-          cell._vl = cell.fn((id: string) => get_cell(data, identifier_cells)(id, call_cell, false, cell._id), lib) // TODO: this might need to change when `g` changes
-        } else {
-          cell._vl = cell.vl || default_value(cell.tp)
-        }
-      }
-
-      cell.visited = true
-
-      return cell._vl
-    }
-  } else return cell.vl
-}
 
 interface IProps {
   data: Cell[][],
@@ -200,19 +62,19 @@ export default class Spreadsheet extends Component<IProps, IState> {
   name: string
   columns: number
   rows: number
-  g: any // TODO: specify further
+  g: getCellCurried
 
   constructor(props: IProps) {
     super(props)
 
     // TODO: transform this.props.data here (could some of this already happen while initially generating the cells (fillTable, ...)?; adding extra values, parsing formulas, building inverse dependency tree)
-    this.data    = transform(this.props.data, IDENTIFIER_CELLS)
+    this.data    = transform(lib, this.props.data, IDENTIFIER_CELLS)
     this.name    = this.props.name
     this.columns = this.data[0].length
     this.rows    = this.data.length
 
     this.props.cb(this.data, this.update)
-    this.g = get_cell(this.data, IDENTIFIER_CELLS)
+    this.g = get_cell(lib, this.data, IDENTIFIER_CELLS)
 
     this.state = {
       selection: {
@@ -239,11 +101,11 @@ export default class Spreadsheet extends Component<IProps, IState> {
   componentDidUpdate(_prevProps: Readonly<IProps> & Readonly<{ children?: any }>) { // TODO: use ReactNode instead of any
     if(this.name !== this.props.name) {
       this.name    = this.props.name
-      this.data    = transform(this.props.data, IDENTIFIER_CELLS)
+      this.data    = transform(lib, this.props.data, IDENTIFIER_CELLS)
       this.columns = this.data[0].length
       this.rows    = this.data.length
 
-      this.g = get_cell(this.data, IDENTIFIER_CELLS)
+      this.g = get_cell(lib, this.data, IDENTIFIER_CELLS)
 
       this.props.cb(this.data, this.update)
 
@@ -423,7 +285,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
       // console.assert(is_formula(cell), cell)
 
       try {
-        cell._vl = cell.fn!((cell_id: CellId) => (this.g(cell_id, cell._id, false, this.data[row][col]._id)), lib)
+        cell._vl = cell.fn!((cell_id: string) => (this.g(cell_id, cell._id, false, this.data[row][col]._id)), lib)
         console.log(generate_id_format(cell._id) + ' updated to ' + cell._vl)
         // TODO: handle format errors here as well?
       } catch(err) {

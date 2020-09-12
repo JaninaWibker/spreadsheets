@@ -1,4 +1,4 @@
-import { fillTableEmpty, fillTableIds } from './helpers'
+import { fillTableEmpty, fillTableIds } from './cell_creation'
 import { CellType } from '../types/CellTypes'
 import { Spreadsheet, SpreadsheetOptions, Cell } from '../types/Spreadsheet'
 

@@ -5,7 +5,7 @@ import './css/index.css'
 import type { Spreadsheet } from './types/Spreadsheet'
 import { CellType } from './types/CellTypes'
 
-import { /*range, createCell, createEmptyCell, createStringCell, createNumberCell, createRow, createCol, createTable,*/ fillTableEmpty, fillTableIds } from './util/helpers'
+import { fillTableEmpty, fillTableIds } from './util/cell_creation'
 import parse_file from './util/file-parser'
 
 const file_demo_spreadsheet = parse_file(`
