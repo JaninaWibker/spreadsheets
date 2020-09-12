@@ -49,10 +49,9 @@ const Cell = ({id, content, style, editable=false, onValueChange, onMouseEvent, 
               setInnerHTML={tp === CellType.STRING}
               onArrowKeyEvent={onArrowKeyEvent}
               raw_data={String(raw_data)}
+              pretty_text={String(content)}
               cb={onValueChange}
-              isFocused={isFocused}>
-                {String(content)}
-            </Editable>
+              isFocused={isFocused} />
         }
     </div>
   </td>

@@ -1,8 +1,8 @@
-import React, { Component } from 'react'
+import React, { Component, ReactComponentElement } from 'react'
 import '../css/editable.css'
 
 interface IProps {
-  raw_data: string,
+  raw_data?: string,
   text?: string,
   pretty_text?: string,
   setInnerHTML: boolean,
@@ -15,21 +15,46 @@ interface IState {
   editing: boolean,
   old_text: string,
   text: string,
-  pretty_text: string
+  pretty_text: string | React.ReactNode
 }
 
 export default class Editable extends Component<IProps, IState> {
+  /**
+   * Render text and start editing it by simply double clicking
+   * 
+   * @remarks
+   * There are mutliple ways to use this component; those include just passing text which is rendered and can be edited;
+   * rendering something different from what can be edited (the rendered text is most likely derived from the editable text)
+   * In addition to that either HTML (in string form) or complete JSX components can be rendered (but not edited in that form)
+
+   * To use those features multiple props need to be used:
+   * @param raw_data  - provides the text that is being edited
+   * @param text      - if no destinction between `raw_data` and `pretty_text` needs to be made (the text that should get rendered is also the text
+   *                    that can be edited); if `pretty_text` is specified this (mostly?; **don't depend on this behaviour**) acts the same as `raw_data`
+   * @param pretty_text   - text that is rendered when not editing
+   * @param children      - **ONLY** used to render actual react components
+   * @param setInnerHTML  - boolean value which determines wether or not a string is rendered to html using `dangerouslySetInnerHTML`
+
+   * To get notified when changes happen the following props can be used:
+   * @param cb - Just a callback that gets fired everytime the text is edited (when the user *finishes* editing the text to be precise)
+   * @param onArrowKeyEvent - this is a special event listener which fires when the arrow keys are pressed **while not editing**. This can
+   *                          be useful in some cases. Besides the pressed key information about which modifiers were held down is also sent along.
+   * 
+   * @param isFocused - **NOT IMPLEMENTED (YET?)**
+   */
 
   el: HTMLInputElement | null = null
 
   constructor(props: Readonly<IProps> & Readonly<{ children?: React.ReactNode }>) {
     super(props)
 
+    console.log(this.props.children)
+
     this.state = {
       editing: false,
       old_text: this.props.raw_data || this.props.text || this.props.children!.toString(),
       text: this.props.raw_data || this.props.text || this.props.children!.toString(),
-      pretty_text: this.props.text || this.props.children!.toString()
+      pretty_text: this.props.text || (this.props.children && this.props.children.toString()) || undefined
     }
 
 
@@ -60,22 +85,47 @@ export default class Editable extends Component<IProps, IState> {
   //   }
   // }
 
+  // * INFO: only about 2-5% of calls to this method result actually qualify for updating the state and this function is called **A LOT**. This means that correctly determining whether to update or not is **REALLY IMPORTANT** for performance.
   UNSAFE_componentWillReceiveProps(nextProps: Readonly<IProps> & Readonly<{ children?: React.ReactNode }>) { // TODO: replace componentWillReceiveProps with getDerivedStateFromProps (https://hackernoon.com/replacing-componentwillreceiveprops-with-getderivedstatefromprops-c3956f7ce607)
-    // console.log(nextProps)
-    const newText = nextProps.raw_data || nextProps.text || nextProps.children!.toString()
-    // console.log('idk', newText, nextProps, this.state)
-    if(newText !== this.state.text || this.state.editing || nextProps.pretty_text !== this.state.pretty_text) {
-      console.log('text has changed: ', newText, this.state.text)
-      // console.log({
-      //   old_text: newText,
-      //   text: this.state.editing ? this.state.text : newText,
-      //   pretty_text: nextProps.text || nextProps.children
-      // })
+
+    // use this to update the state; this ensures that logging (if not commented out) is consistent across execution paths. All of the state changes also looked almost completely similar so this reduces redundency
+    const update_state = (old_text: string, text: string, pretty_text: string | React.ReactNode) => {
+      console.log({ children: nextProps.children, raw_data: nextProps.raw_data, text: nextProps.text, pretty_text: nextProps.pretty_text, setInnerHTML: nextProps.setInnerHTML }, { text: this.state.text, pretty_text: this.state.pretty_text })
       this.setState({
-        old_text: newText,
-        text: this.state.editing ? this.state.text : newText,
-        pretty_text: nextProps.text || nextProps.children!.toString()
+        old_text: old_text,
+        text: this.state.editing ? this.state.text : text,
+        pretty_text: pretty_text
       })
+    }
+
+    // differentiate between just supplying text and also supplying raw_data
+    if(nextProps.raw_data !== undefined) { // raw_data supplied; differentiating between text and pretty_text
+      const new_raw_text = nextProps.raw_data
+
+      if(nextProps.children !== undefined && typeof(nextProps.children) !== "string" ) { // handle React Component as pretty_text
+        if(new_raw_text !== this.state.text || nextProps.children !== this.state.pretty_text) {
+          update_state(new_raw_text, new_raw_text, nextProps.children)
+        }
+      } else {
+        const new_text = nextProps.pretty_text || nextProps.text || nextProps.children!.toString()
+
+        if(new_raw_text !== this.state.text || new_text !== this.state.pretty_text) {
+          update_state(new_raw_text, new_raw_text, new_text)
+        }
+      }
+
+    } else { // not differentiating between text and pretty text
+      if(nextProps.children !== undefined && typeof(nextProps.children) !== "string" ) { // handle React Component as pretty_text
+        if(nextProps.children !== this.state.pretty_text) {
+          // if children is a JSX component and for some reason text / raw_data is not used just don't change the already existing values for old_text and text
+          update_state(this.state.old_text, this.state.text, nextProps.children)
+        }
+      } else {
+        const new_text: string = nextProps.pretty_text || nextProps.text || nextProps.children!.toString()
+        if(new_text !== this.state.text || new_text !== this.state.pretty_text) {
+          update_state(new_text, new_text, new_text)
+        }
+      }
     }
   }
 
@@ -128,7 +178,7 @@ export default class Editable extends Component<IProps, IState> {
               tabIndex={0}
               onKeyDown={this.onKeyDown}
               onDoubleClick={this.startEdit}
-              dangerouslySetInnerHTML={{__html: this.state.pretty_text}} />
+              dangerouslySetInnerHTML={{__html: this.state.pretty_text as string}} />
           : <span
               tabIndex={0}
               onKeyDown={this.onKeyDown}
