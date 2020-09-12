@@ -34,6 +34,9 @@ const compile = (ast: AST[]): { fn: any, refs: CellId[] } | null => {
 
 const get_refs = (ast: AST): CellId[] => {
   switch(ast.type) {
+    case 'lambda': {
+      return get_refs(ast.val)
+    }
     case 'call': {
       const args = ast.val.type === 'list' ? ast.val.val : [ast.val]
       if(ast.fn === 'if' && args.length === 2) {
@@ -94,10 +97,12 @@ const get_refs = (ast: AST): CellId[] => {
     case 'boolean':
     case 'number':
     case 'string': return []
+    case 'it_identifier':
     case 'identifier': {
       switch(ast.val.toLowerCase()) {
         case 'pi':  return []
         case 'e':   return []
+        case 'it':  return []
         default:    return [ast.val]
       }
     }
@@ -114,9 +119,11 @@ const get_refs = (ast: AST): CellId[] => {
 // @ts-ignore(2366): the switch statement covers all possible scenarios; this not being detected is likely just a typescript bug
 const compile_inner = (ast: AST): string => {
   switch(ast.type) {
+    case 'lambda': {
+      return `it => ${compile_inner(ast.val)}`
+    }
     case 'call': {
       const args = ast.val.type === 'list' ? ast.val.val : [ast.val]
-      console.log(args)
       if(ast.fn === 'if' && args.length === 2) {
         return `((${compile_inner(args[0])}) ? ${compile_inner(args[1])} : undefined)`
       } else if(ast.fn === 'if' && args.length === 3) {
@@ -181,6 +188,9 @@ const compile_inner = (ast: AST): string => {
       if(ast.sub_type === 'dqstring') return `"${str}"`
       if(ast.sub_type === 'sqstring') return `'${str}'`
     } break
+    case 'it_identifier': {
+      return `it`
+    }
     case 'identifier': {
       switch(ast.val.toLowerCase()) {
         case 'pi':  return `lib.pi`

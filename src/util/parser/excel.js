@@ -59,10 +59,12 @@ var grammar = {
     {"name": "arith_2", "symbols": ["arith_2", (lexer.has("mod_op") ? {type: "mod_op"} : mod_op), "power"], "postprocess": ([fst, _, snd]) => ({ type: 'modulo',          val: [fst, snd] })},
     {"name": "power", "symbols": ["unary"], "postprocess": id},
     {"name": "power", "symbols": ["power", (lexer.has("pow_op") ? {type: "pow_op"} : pow_op), "unary"], "postprocess": ([fst, _, snd]) => ({ type: 'power', val: [fst, snd] })},
-    {"name": "unary", "symbols": ["call"], "postprocess": id},
+    {"name": "unary", "symbols": ["call_or_lambda"], "postprocess": id},
     {"name": "unary", "symbols": [(lexer.has("not_op") ? {type: "not_op"} : not_op), "call"], "postprocess": ([_, fst,]) => ({ type: 'unary_negation',  val: fst })},
     {"name": "unary", "symbols": [(lexer.has("add_op") ? {type: "add_op"} : add_op), "call"], "postprocess": ([_, fst,]) => ({ type: 'unary_plus',      val: fst })},
     {"name": "unary", "symbols": [(lexer.has("sub_op") ? {type: "sub_op"} : sub_op), "call"], "postprocess": ([_, fst,]) => ({ type: 'unary_minus',     val: fst })},
+    {"name": "call_or_lambda", "symbols": ["call"], "postprocess": id},
+    {"name": "call_or_lambda", "symbols": [(lexer.has("dot") ? {type: "dot"} : dot), "l_or"], "postprocess": ([_, fst]) => ({ type: 'lambda', val: fst })},
     {"name": "call", "symbols": ["range"], "postprocess": id},
     {"name": "call", "symbols": ["id", (lexer.has("lparen") ? {type: "lparen"} : lparen), "list", (lexer.has("rparen") ? {type: "rparen"} : rparen)], "postprocess": ([fst, _, snd, __]) => ({ type: 'call', fn: fst.val.toLowerCase(), val: snd })},
     {"name": "call", "symbols": ["id", (lexer.has("lparen") ? {type: "lparen"} : lparen), (lexer.has("rparen") ? {type: "rparen"} : rparen)], "postprocess": ([fst]) => ({ type: 'call', fn: fst.val.toLowerCase(), val: [] })},
@@ -74,7 +76,7 @@ var grammar = {
     {"name": "parentheses", "symbols": [(lexer.has("lparen") ? {type: "lparen"} : lparen), "list", (lexer.has("rparen") ? {type: "rparen"} : rparen)], "postprocess": ([_, fst, __]) => ({ type: 'parentheses', val: fst })},
     {"name": "value", "symbols": ["id"], "postprocess": id},
     {"name": "value", "symbols": ["primitive"], "postprocess": id},
-    {"name": "id", "symbols": [(lexer.has("id") ? {type: "id"} : id)], "postprocess": ([fst]) => ({ type: 'identifier',  val: fst.text })}
+    {"name": "id", "symbols": [(lexer.has("id") ? {type: "id"} : id)], "postprocess": ([fst]) => ({ type: fst.text === 'it' ? 'it_identifier' : 'identifier',  val: fst.text })}
 ]
   , ParserStart: "start"
 }

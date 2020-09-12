@@ -25,6 +25,8 @@ const lexer = moo.compile({
   range_op: ':',
   lparen: '(',
   rparen: ')',
+
+  // identifiers
   id: /[_a-zA-Z]+/,
 
   // primitives

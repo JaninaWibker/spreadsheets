@@ -64,10 +64,13 @@ arith_2 -> power                    {% id %}
 power -> unary                      {% id %}
        | power %pow_op unary        {% ([fst, _, snd]) => ({ type: 'power', val: [fst, snd] }) %}
 
-unary -> call                       {% id %}
+unary -> call_or_lambda             {% id %}
        | %not_op call               {% ([_, fst,]) => ({ type: 'unary_negation',  val: fst }) %}
        | %add_op call               {% ([_, fst,]) => ({ type: 'unary_plus',      val: fst }) %} # not using %plus_op as it gets confused with %add_op since it is the same character
        | %sub_op call               {% ([_, fst,]) => ({ type: 'unary_minus',     val: fst }) %} # not using %minus_op as it gets confused with %sub_op since it is the same character
+
+call_or_lambda -> call              {% id %}
+                | %dot l_or         {% ([_, fst]) => ({ type: 'lambda', val: fst }) %}
 
 call -> range                       {% id %}
       | id %lparen list %rparen     {% ([fst, _, snd, __]) => ({ type: 'call', fn: fst.val.toLowerCase(), val: snd }) %}
@@ -84,5 +87,5 @@ parentheses -> value                {% id %}
 value -> id                         {% id %}
        | primitive                  {% id %}
 
-id -> %id                           {% ([fst]) => ({ type: 'identifier',  val: fst.text }) %} # disallow any kind of digit inside of identifiers, will maybe change to something like all sequences of digits must be preceded by "_" or something
+id -> %id                           {% ([fst]) => ({ type: fst.text === 'it' ? 'it_identifier' : 'identifier',  val: fst.text }) %} # disallow any kind of digit inside of identifiers, will maybe change to something like all sequences of digits must be preceded by "_" or something
 # id -> [_a-zA-Z] [_a-zA-Z]:*       {% ([fst, snd]) => ({ type: 'identifier',  val: fst + (snd ? snd.join('') : '') }) %} # disallow any kind of digit inside of identifiers, will maybe change to something like all sequences of digits must be preceded by "_" or something

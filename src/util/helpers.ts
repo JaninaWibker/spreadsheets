@@ -5,6 +5,10 @@ import type { Cell, CellId } from '../types/Spreadsheet'
 import { CellType, CellSubType } from '../types/CellTypes'
 import { parse_cell_id_format } from './cell_id'
 
+const Alphabet = 'ABCDEFGHIJKLNMOPQRSTUVWXYZ'.split('')
+const alphabet = 'abcdefghijklnmopqrstuvwxyz'.split('')
+
+
 const MARKED_OPTIONS = {
   smartypants: true
 }
@@ -27,9 +31,6 @@ const destructure = (obj: { [key: string]: any }, template: { [key: string]: any
   }
   return _obj
 }
-
-const Alphabet = 'ABCDEFGHIJKLNMOPQRSTUVWXYZ'.split('')
-const alphabet = 'abcdefghijklnmopqrstuvwxyz'.split('')
 
 const is_formula = (cell: Cell) => cell.vl && typeof(cell.vl) === 'string' && cell.vl.startsWith('=')
 

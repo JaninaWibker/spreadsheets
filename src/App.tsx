@@ -30,18 +30,18 @@ const demo_spreadsheet: Spreadsheet = {
     // y: [null, { height: 25 }]
   },
   // data: createTable(0, 0, 26, 28, createStringCell([null, null], "")),
-  data: fillTableIds(4, 2, fillTableEmpty(4, 2, [
-    [{tp: CellType.STRING, vl: '**test**', style: {fontFamily: 'Menlo'}}, {tp: CellType.NUMBER, vl: 5, name: 'thisIsSomeName'}],
-    [{tp: CellType.STRING, vl: '`123`: blub'},                            {tp: CellType.NUMBER, vl: '=A1:A1'}],
-    [{tp: CellType.STRING, vl: '=pi'}],
-    [{tp: CellType.EMPTY, vl: ''},                                        {tp: CellType.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
-  ])),
   // data: fillTableIds(4, 2, fillTableEmpty(4, 2, [
-  //   [{tp: CellType.NUMBER, vl: 5},     {tp: CellType.NUMBER, vl: '=A1'}],
-  //   [{tp: CellType.NUMBER, vl: '=B1'}, {tp: CellType.NUMBER, vl: '=B3'}],
-  //   [{tp: CellType.NUMBER, vl: '=A3'}, {tp: CellType.NUMBER, vl: 0}],
-  //   [{tp: CellType.NUMBER, vl: 0},     {tp: CellType.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
+  //   [{tp: CellType.STRING, vl: '**test**', style: {fontFamily: 'Menlo'}}, {tp: CellType.NUMBER, vl: 5, name: 'thisIsSomeName'}],
+  //   [{tp: CellType.STRING, vl: '`123`: blub'},                            {tp: CellType.NUMBER, vl: '=A1:A1'}],
+  //   [{tp: CellType.STRING, vl: '=pi'}],
+  //   [{tp: CellType.EMPTY, vl: ''},                                        {tp: CellType.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
   // ])),
+  data: fillTableIds(4, 2, fillTableEmpty(4, 2, [
+    [{tp: CellType.NUMBER, vl: 5},     {tp: CellType.NUMBER, vl: '=A1'}],
+    [{tp: CellType.NUMBER, vl: '=B1'}, {tp: CellType.NUMBER, vl: '=B3'}],
+    [{tp: CellType.NUMBER, vl: '=A3'}, {tp: CellType.NUMBER, vl: 0}],
+    [{tp: CellType.NUMBER, vl: '=COUNTIF(B1:B4, . it == 0)'},     {tp: CellType.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
+  ])),
   name: 'demo_spreadsheet'
 }
 
