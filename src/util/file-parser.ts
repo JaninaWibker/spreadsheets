@@ -14,14 +14,14 @@ type rawData = {
   name?: string
 }
 
-const parse_options = (str: string): rawOptions => <rawOptions> (str
+const parse_options = (str: string): rawOptions => (str
     .split('\n')
     .filter((line: string) => !!line)
     .map((line: string) => line.split(':'))
     .reduce((acc: any, curr: string[]) => {
       acc[curr[0].trim()] = curr[1].trim()
       return acc
-    }, {}))
+    }, {})) as rawOptions
 
 const transform_options = (raw_options: rawOptions): SpreadsheetOptions => {
   const rtn: {rounding: number, date_format: string} = {

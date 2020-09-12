@@ -37,13 +37,13 @@ const format_data = (data: number | string | undefined, tp: CellType, stp: CellS
   if(tp === CellType.NUMBER) {
     // this is incase something formatted as a number is actually a string, this shouldn't break the application, just ignore the formatting
     if(typeof data !== "number" && isNaN(parseFloat(data))) return data
-    if(stp === CellSubType.PERCENTAGE && r_dec) return round(<number> data * 100, r_dec) + '%'
-    if(stp === CellSubType.PERCENTAGE) return (<number> data * 100) + '%'
-    if(r_dec) return round(<number> data, r_dec)
+    if(stp === CellSubType.PERCENTAGE && r_dec) return round((data as number) * 100, r_dec) + '%'
+    if(stp === CellSubType.PERCENTAGE) return ((data as number) * 100) + '%'
+    if(r_dec) return round(data as number, r_dec)
     else return data
   } else if(tp === CellType.STRING) {
-    if(stp === CellSubType.UPPERCASE) return marked(( <string> data).toUpperCase())
-    if(stp === CellSubType.LOWERCASE) return marked(( <string> data).toLowerCase())
+    if(stp === CellSubType.UPPERCASE) return marked((data as string).toUpperCase())
+    if(stp === CellSubType.LOWERCASE) return marked((data as string).toLowerCase())
     else return marked(String(data))
   } else if(tp === CellType.EMPTY) {
     // TODO: this is just here for debugging
