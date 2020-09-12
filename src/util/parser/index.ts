@@ -1,18 +1,22 @@
-import { parse_col_id_format } from '../helpers.js'
+import { parse_col_id_format } from '../helpers'
+
+import type { AST } from '../../types/AST'
 
 import nearley from 'nearley'
 
-import raw_excel_grammar from './excel.js'
-import raw_string_grammar from './string.js'
+import { raw_excel_grammar, raw_string_grammar } from './grammars.js'
+import { CellId } from '../../types/Spreadsheet'
 
+// @ts-ignore(2345): this is a bug in nearley or moo (the tokenizer); there is a [github issue](https://github.com/kach/nearley/issues/527) for it with a really really hacky solution. TODO: has this been fixed yet?
 const excel_grammar = nearley.Grammar.fromCompiled(raw_excel_grammar)
+// @ts-ignore(2345): this is a bug in nearley or moo (the tokenizer); there is a [github issue](https://github.com/kach/nearley/issues/527) for it with a really really hacky solution. TODO: has this been fixed yet?
 const string_grammar = nearley.Grammar.fromCompiled(raw_string_grammar)
 
-const _compile_binary_operator = (op, [fst, snd]) => `${compile_inner(fst)} ${op} ${compile_inner(snd)}`
+const _compile_binary_operator = (op: string, [fst, snd]: [AST, AST]): string => `${compile_inner(fst)} ${op} ${compile_inner(snd)}`
 
-const _compile_unary_operator = (op, fst) => `${op}${compile_inner(fst)}`
+const _compile_unary_operator = (op: string, fst: AST): string => `${op}${compile_inner(fst)}`
 
-const compile = ast => {
+const compile = (ast: AST[]): { fn: any, refs: CellId[] } | null => {
   // I know this is not considered good code, but using eval is pretty much the only choice here,
   // the other choice would be to completely interpret the ast everytime which is also not good
   // for performance reasons, better to just transpile to javascript once and be done with it.
@@ -24,10 +28,11 @@ const compile = ast => {
     return { fn: window.eval(transpiled_code), refs: get_refs(ast[0]) }
   } catch(e) {
     console.error(transpiled_code, e)
+    return null
   }
 }
 
-const get_refs = ast => {
+const get_refs = (ast: AST): CellId[] => {
   switch(ast.type) {
     case 'call': {
       const args = ast.val.type === 'list' ? ast.val.val : [ast.val]
@@ -73,7 +78,7 @@ const get_refs = ast => {
       const brx = Math.max(x1, x2) // bottom-right
       const bry = Math.max(y1, y2)
 
-      const refs = []
+      const refs: CellId[] = []
 
       for(let row = tly; row <= bry; row++) {
         for(let col = tlx; col <= brx; col++) {
@@ -106,7 +111,8 @@ const get_refs = ast => {
   }
 }
 
-const compile_inner = ast => {
+// @ts-ignore(2366): the switch statement covers all possible scenarios; this not being detected is likely just a typescript bug
+const compile_inner = (ast: AST): string => {
   switch(ast.type) {
     case 'call': {
       const args = ast.val.type === 'list' ? ast.val.val : [ast.val]
@@ -193,20 +199,18 @@ const compile_inner = ast => {
   }
 }
 
-const parse = input => {
+const parse = (input: string) => {
   const parser = new nearley.Parser(excel_grammar);
   parser.feed(input)
   return parser.finish()
 }
 
-const parse_string = str => {
+const parse_string = (str: string) => {
   const string_parser = new nearley.Parser(string_grammar)
   string_parser.feed(str)
   return string_parser.finish()
 }
 
-const transpile = input => compile(parse(input))
-
-window.transpile = transpile
+const transpile = (input: string) => compile(parse(input))
 
 export { parse, compile, transpile }

@@ -1,6 +1,6 @@
 // this will be the standard library for the formulas
 
-const format_arguments = (cb, ...args) => Array.isArray(args[0]) 
+const format_arguments = (cb: any, ...args: any) => Array.isArray(args[0]) 
   ? cb(args[0])
   : cb(args)
 
@@ -35,34 +35,36 @@ const lib = {
   ln: Math.log,
   log2: Math.log2,
   log10: Math.log10,
-  log: (base, value) => Math.log(value) / Math.log(base),
+  log: (base: number, value: number) => Math.log(value) / Math.log(base),
 
 
-  max: format_arguments.bind(this, arr => Math.max(...arr)),
-  min: format_arguments.bind(this, arr => Math.min(...arr)),
-  sum: format_arguments.bind(this, arr => {
+  max: format_arguments.bind(this, (arr: number[]) => Math.max(...arr)),
+  min: format_arguments.bind(this, (arr: number[]) => Math.min(...arr)),
+  sum: format_arguments.bind(this, (arr: number[]) => {
     let sum = 0;
     for(let i = 0; i < arr.length; i++)
       sum += arr[i]
     return sum
   }),
-  sumif: format_arguments.bind(this, arr => {
+  sumif: format_arguments.bind(this, (arr: number[]) => {
     let sum = 0
     for(let i = 0; i < arr.length; i++)
       if(true) // TODO: somehow add the conditions here
         sum += arr[i]
     return sum
   }),
-  count: format_arguments.bind(this, arr => arr.length),
-  countif: format_arguments.bind(this, arr => {
+  count: format_arguments.bind(this, (arr: (number | string)[]) => arr.length),
+  countif: format_arguments.bind(this, (arr: (number | string)[]) => {
     let count = 0
     for(let i = 0; i < arr.length; i++)
       if(true) // TODO: somehow add the conditions here
         count += 1
     return count
   }),
-  avg: format_arguments.bind(this, arr => lib.sum(arr) / arr.length),
+  avg: format_arguments.bind(this, (arr: number[]) => lib.sum(arr) / arr.length),
 }
+
+export type LibType = typeof lib
 
 export default lib
 

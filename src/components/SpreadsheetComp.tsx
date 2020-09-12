@@ -1,11 +1,13 @@
 import React, { Component } from 'react'
 import '../css/spreadsheet.css'
 
-import { BorderCell, Cell } from './Cell.js'
-import Selection from './Selection.js'
-import { range, destructure, default_value, format_data, scroll_into_view_if_needed, is_formula, parse_formula, parse_cell_id_format, generate_col_id_format, generate_id_format, CELL_TYPE } from '../util/helpers.js'
+import { BorderCell, Cell as NormalCell } from './Cell'
+import Selection from './Selection'
+import { range, destructure, default_value, format_data, scroll_into_view_if_needed, is_formula, parse_formula, parse_cell_id_format, generate_col_id_format, generate_id_format } from '../util/helpers'
+import { CellType } from '../types/CellTypes'
+import type { Cell, CellId, SpreadsheetOptions } from '../types/Spreadsheet'
 
-import lib from '../util/stdlib.js'
+import lib from '../util/stdlib'
 
 // constants for width/height of cells
 const CELL_WIDTH = 224
@@ -21,9 +23,9 @@ document.documentElement.style.setProperty('--cell-height-px', CELL_HEIGHT + 'px
 document.documentElement.style.setProperty('--index-cell-width-px', INDEX_CELL_WIDTH + 'px');
 document.documentElement.style.setProperty('--index-cell-height-px', INDEX_CELL_HEIGHT + 'px');
 
-const IDENTIFIER_CELLS = {}
+const IDENTIFIER_CELLS: { [key: string]: CellId } = {}
 
-const recurse = (data, identifier_cells, cell, origin_cell) => {
+const recurse = (data: Cell[][], identifier_cells: { [key: string]: CellId }, cell: Cell, origin_cell: CellId) => {
   if(cell.visited) return // already visited; no need to recalculate _vl and do recursing again
   console.log('calling recurse for ' + generate_id_format(cell._id))
   cell.refs.forEach(ref_id => {
@@ -37,37 +39,40 @@ const recurse = (data, identifier_cells, cell, origin_cell) => {
     if(ref.visited) return // already visited this ref; no need to recalcualte _vl and recurse further
     recurse(data, identifier_cells, ref, origin_cell)
     if(ref.fn) {
-      ref._vl = ref.fn(cell_id => (get_cell(data, identifier_cells)(cell_id, ref._id, false, origin_cell)), lib)
+      ref._vl = ref.fn((cell_id: string) => (get_cell(data, identifier_cells)(cell_id, ref._id, false, origin_cell)), lib)
+      console.log('calculated value for cell ' + generate_id_format(ref._id) + ' (' + ref._vl + ')')
     }
   })
   if(cell.fn) {
-    cell._vl = cell.fn(cell_id => (get_cell(data, identifier_cells)(cell_id, cell._id, false, origin_cell)), lib)
+    cell._vl = cell.fn((cell_id: string) => (get_cell(data, identifier_cells)(cell_id, cell._id, false, origin_cell)), lib)
+    console.log('calculated value for cell ' + generate_id_format(cell._id) + ' (' + cell._vl + ')')
   }
   cell.visited = true
 }
 
-const parse_formulas = (_data, identifier_cells, cell) => {
+const parse_formulas = (_data: Cell[][], identifier_cells: { [key: string]: CellId }, cell: Cell) => {
   if(cell.name) {
-    identifier_cells[cell.name] = cell._id
+    identifier_cells[cell.name] = cell._id // TODO: should this be CellId or Cell?
   }
 
-  const {fn, refs} = (is_formula(cell) && parse_formula(cell.vl.substring(1))) || { fn: undefined, refs: [] }
+  const {fn, refs} = (is_formula(cell) && parse_formula((cell.vl as string).substring(1))) || { fn: undefined, refs: [] }
 
   return { ...cell, fn, refs }
 }
 
-const descend = (data, identifier_cells, cell) => {
-  cell.refs = cell.refs.map(ref => typeof(ref) === 'string' ? lookup(ref, identifier_cells) : ref) // transform all refs into the [col, row] format
+const descend = (data: Cell[][], identifier_cells: { [key: string]: CellId }, cell: Cell) => {
+  cell.refs = cell.refs.map((ref: CellId) => typeof(ref) === 'string' ? lookup(ref, identifier_cells) : ref) as CellId[] // transform all refs into the [col, row] format
   console.warn(cell)
-  if(cell.refs.find(ref => ref[0] === cell.row && ref[1] === cell.col)) {
+  if(cell.refs.find((ref: CellId) => ref[0] === cell.row && ref[1] === cell.col)) {
     cell.err = new Error("self-references not allowed")
   } else {
+    console.log('-- recurse --')
     recurse(data, identifier_cells, cell, cell._id)
   }
   return cell
 }
 
-const transform = (data, identifier_cells) => {
+const transform = (data: Cell[][], identifier_cells: { [key: string]: CellId }) => {
 
   const new_data = data
     .map((row, _i, current_data) => row.map(cell => parse_formulas(current_data, identifier_cells, cell)))
@@ -75,13 +80,14 @@ const transform = (data, identifier_cells) => {
     .map((row)                   => row.map(cell => ({...cell, visited: false})))
 
 
+  console.log("transformed", new_data)
 
   return new_data
 }
 
 // this supports "ABC321", "123.123" as well as named references as cell formats
 // returns null when cell not found
-const lookup = (cell_id, identifier_cells) => {
+const lookup = (cell_id: string, identifier_cells: { [key: string]: CellId }): [number, number] | null => {
   
   // this supports both "ABC321", "123.123" as cell formats
   const pair = parse_cell_id_format(cell_id)
@@ -91,6 +97,7 @@ const lookup = (cell_id, identifier_cells) => {
     const identifierMatch = cell_id.match(/^[a-zA-Z_][a-zA-Z_0-9]*$/)
     if(identifierMatch && identifier_cells[identifierMatch[0]]) {
       return identifier_cells[identifierMatch[0]] // identifier (like variable names)
+      // TODO: should this return Cell or CellId?
     } else {
       return null
     }
@@ -103,7 +110,7 @@ const lookup = (cell_id, identifier_cells) => {
 // call_cell is the cell that initiated the whole recursive descend
 // byRender skips a check for circular calls as the caller (usually identified by call_cell) is not an actual cell but the renderer
 // rec_call_cell is the direct caller; meaning the target of the call one stack frame lower on the call stack
-const get_cell = (data, identifier_cells) => (target, call_cell, byRender=false, rec_call_cell) => {
+const get_cell = (data: Cell[][], identifier_cells: { [key: string]: CellId }) => (target: string, call_cell: CellId, byRender=false, rec_call_cell: CellId) => {
   // console.log(cell, call_cell, byRender, rec_call_cell)
 
   const pair = lookup(target, identifier_cells)
@@ -123,17 +130,17 @@ const get_cell = (data, identifier_cells) => (target, call_cell, byRender=false,
     return '<error>'
   }
 
-  if(cell.tp === CELL_TYPE.EMPTY) return ''
-  if(cell.tp === CELL_TYPE.NUMBER || cell.tp === CELL_TYPE.STRING) {
+  if(cell.tp === CellType.EMPTY) return ''
+  if(cell.tp === CellType.NUMBER || cell.tp === CellType.STRING) {
 
     // add 'changes'-array to the current cell including the caller of g (the previous function in the callstack, (and the cell of this function))
     // if the array does exist already, the id of the cell is just pushed to it
     if(c_row !== rc_row || c_col !== rc_col) {
       console.log('caller', rcc, 'current', cell)
 
-      if(Array.isArray(cell.changes) && !cell.changes.includes(rcc.id)) { // TODO: this technically needs to be more sophisticated now as ids aren't just strings anymore but this code will be removed soon so it shouldn't really matter
-        // c.changes.push(rcc._id)
-      }
+      // if(Array.isArray(cell.changes) && !cell.changes.includes(rcc.id)) { // TODO: this technically needs to be more sophisticated now as ids aren't just strings anymore but this code will be removed soon so it shouldn't really matter
+      //   // c.changes.push(rcc._id)
+      // }
 
 
       console.log(destructure(rcc, ['id', 'changes', 'visited']), destructure(cell, ['id', 'changes', 'visited']))
@@ -146,7 +153,7 @@ const get_cell = (data, identifier_cells) => (target, call_cell, byRender=false,
       if(cell.visited === false) {
         if(c_row !== call_cell[0] || c_col !== call_cell[1] || byRender) {
           console.log(cell.id, rcc.id)
-          cell._vl = cell.fn(id => get_cell(data, identifier_cells)(id, call_cell, false, cell._id), lib) // TODO: this might need to change when `g` changes
+          cell._vl = cell.fn((id: string) => get_cell(data, identifier_cells)(id, call_cell, false, cell._id), lib) // TODO: this might need to change when `g` changes
         } else {
           cell._vl = cell.vl || default_value(cell.tp)
         }
@@ -159,8 +166,43 @@ const get_cell = (data, identifier_cells) => (target, call_cell, byRender=false,
   } else return cell.vl
 }
 
-export default class Spreadsheet extends Component {
-  constructor(props) {
+interface IProps {
+  data: Cell[][],
+  name: string,
+  options: SpreadsheetOptions,
+  cb: any // TODO: figure out what this is actually used for
+}
+
+interface IState {
+  selection: {
+    start_x: number,
+    start_y: number,
+    end_x: number,
+    end_y: number,
+    // _start_x: number,
+    // _start_y: number,
+    // _end_x: number,
+    // _end_y: number
+  },
+  focused: {
+    x: number,
+    y: number
+  },
+  dimensions: {
+    x: number,
+    y: number
+  }
+}
+
+export default class Spreadsheet extends Component<IProps, IState> {
+
+  data: Cell[][]
+  name: string
+  columns: number
+  rows: number
+  g: any // TODO: specify further
+
+  constructor(props: IProps) {
     super(props)
 
     // TODO: transform this.props.data here (could some of this already happen while initially generating the cells (fillTable, ...)?; adding extra values, parsing formulas, building inverse dependency tree)
@@ -178,10 +220,10 @@ export default class Spreadsheet extends Component {
         start_y: 0,
         end_x: 0,
         end_y: 0,
-        _start_x: 0,
-        _start_y: 0,
-        _end_x: 0,
-        _end_y: 0
+        // _start_x: 0,
+        // _start_y: 0,
+        // _end_x: 0,
+        // _end_y: 0
       },
       focused: {
         x: 0,
@@ -194,7 +236,7 @@ export default class Spreadsheet extends Component {
     }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(_prevProps: Readonly<IProps> & Readonly<{ children?: any }>) { // TODO: use ReactNode instead of any
     if(this.name !== this.props.name) {
       this.name    = this.props.name
       this.data    = transform(this.props.data, IDENTIFIER_CELLS)
@@ -209,7 +251,7 @@ export default class Spreadsheet extends Component {
     }
   }
 
-  _update = (cell_id) => {
+  _update = (cell_id: CellId) => {
     const [col, row] = cell_id
     const cell = this.data[col][row]
 
@@ -218,12 +260,12 @@ export default class Spreadsheet extends Component {
     if(cell.changes) cell.changes.map(this._update)
   }
 
-  update = (cell_id) => {
+  update = (cell_id: CellId) => {
     this._update(cell_id)
     this.forceUpdate()
   }
 
-  handleMouseSelection = (e, id) => {
+  handleMouseSelection = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, id: string) => {
     const [row, col] = id.split('.')
     if(e.type === 'mousedown')
       this.setState({selection: {
@@ -248,9 +290,9 @@ export default class Spreadsheet extends Component {
       }})
   }
 
-  handleKeypress = (key, shift, alt, ctrl, preventDefault) => {
-    const sx = { ArrowLeft: -1, ArrowRight: 1 }[key] || 0
-    const sy = { ArrowUp:   -1, ArrowDown:  1 }[key] || 0
+  handleKeypress = (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", shift: boolean, alt: boolean, ctrl: boolean, preventDefault: () => any) => {
+    const sx: number = { ArrowLeft: -1, ArrowRight: 1, ArrowUp:  0, ArrowDown: 0 }[key] || 0
+    const sy: number = { ArrowLeft:  0, ArrowRight: 0, ArrowUp: -1, ArrowDown: 1 }[key] || 0
 
     // TODO: ctrl snaps to edge (should also work together with alt)
 
@@ -273,12 +315,12 @@ export default class Spreadsheet extends Component {
     }, focused: {
       x: this.state.selection.start_x,
       y: this.state.selection.start_y
-    }}, _ => {
-      if(this.selectionElement) scroll_into_view_if_needed(this.selectionElement)
+    }}, () => {
+      // if(this.selectionElement) scroll_into_view_if_needed(this.selectionElement) // TODO: what is the purpose of this exactly?; well this element SHOULD exist but somehow isn't mentioned anywhere else
     })
   }
 
-  handleCellChange = (cell, value) => {
+  handleCellChange = (cell: Cell, value: string) => {
     const [row, col] = cell._id
 
     if(cell.name) {
@@ -293,12 +335,12 @@ export default class Spreadsheet extends Component {
 
     // if formula then assign new value to .vl and compute .fn
     if(value.startsWith('=')) {
-      const {fn, refs} = parse_formula(value.substring(1))
+      const {fn, refs} = parse_formula(value.substring(1))!
       this.data[row][col].vl = value
       this.data[row][col].fn = fn
       this.data[row][col].refs = refs
     } else {
-      if(this.data[row][col].tp === CELL_TYPE.NUMBER) {
+      if(this.data[row][col].tp === CellType.NUMBER) {
         const parsed_value = parseFloat(value)
         if(isNaN(parsed_value)) {
           console.log(this.data[row][col])
@@ -309,16 +351,18 @@ export default class Spreadsheet extends Component {
           // TODO: should be stronger safe-guards against this and errors should be displayed using the
           // TODO: same mechanism rendered markdown is displayed. This means that everything tagged as a
           // TODO: number should display an error if the content of the cell is not interpretable as a number.
-          this.data[row][col].error = new Error("#NaN")
+          this.data[row][col].err = new Error("#NaN")
         } else {
           // nothing has changed (had to parse to a number first to check this)
           if(parsed_value === cell.vl) return
           this.data[row][col].vl = parsed_value
         }
-      } else if(this.data[row][col].tp === CELL_TYPE.STRING) {
+      } else if(this.data[row][col].tp === CellType.STRING) {
         this.data[row][col].vl = value
       }
     }
+
+    console.log('value changed', this.data[row][col])
 
     // when updating a cell the data structure becomes somewhat invalid:
     // each cell has a refs array and a changes array. The only thing that
@@ -330,7 +374,7 @@ export default class Spreadsheet extends Component {
     // code has to be written. The most complex thing is probably finding out
     // which cells need to have their changes array updated.
 
-    this.data[row][col].refs = this.data[row][col].refs.map(ref => typeof(ref) === 'string' ? lookup(ref, IDENTIFIER_CELLS) : ref)
+    this.data[row][col].refs = this.data[row][col].refs.map(ref => typeof(ref) === 'string' ? lookup(ref, IDENTIFIER_CELLS) : ref) as CellId[]
     if(this.data[row][col].refs.find(ref => ref[0] === this.data[row][col].row && ref[1] === this.data[row][col].col)) {
       this.data[row][col].err = new Error("self-references not allowed")
     } else {
@@ -373,13 +417,13 @@ export default class Spreadsheet extends Component {
     // but some cells are visited multiple times by different leaves and could re-evaluated so they could be seen as multiple
     // nodes in a sense. With this bending of the definition it would be a tree again.
     // For programming purposes it can be thought of as a tree.
-    const recurse = (cell, caller) => {
+    const recurse = (cell: Cell, caller: string) => {
       const self = generate_id_format(cell._id)
       console.log(caller + ' -> ' + self, cell.vl)
-      console.assert(is_formula(cell), cell)
+      // console.assert(is_formula(cell), cell)
 
       try {
-        cell._vl = cell.fn(cell_id => (this.g(cell_id, cell._id, false, this.data[row][col]._id)), lib)
+        cell._vl = cell.fn!((cell_id: CellId) => (this.g(cell_id, cell._id, false, this.data[row][col]._id)), lib)
         console.log(generate_id_format(cell._id) + ' updated to ' + cell._vl)
         // TODO: handle format errors here as well?
       } catch(err) {
@@ -394,24 +438,25 @@ export default class Spreadsheet extends Component {
     this.update(cell._id)
   }
 
-  render_cell(cell) { // TODO: this function is called ALL THE TIME for EVERY CELL, realistically it only needs to be called on first render and maybe when a cells needs explicit updating
+  render_cell(cell: Cell) { // TODO: this function is called ALL THE TIME for EVERY CELL, realistically it only needs to be called on first render and maybe when a cells needs explicit updating
 
     const v = this.g(cell.id, cell._id, true, cell._id) // TODO: this might need to change when `g` changes
 
     // console.log('called for cell: ' + generate_id_format(cell._id) + ' new value: ' + v)
 
     return (
-      <Cell
-      key={cell.row + '.' + cell.col}
-      id={cell.row + '.' + cell.col}
-      content={format_data(v, cell.tp, cell.stp, cell.r_dec || this.props.options.rounding)}
-      editable={cell.tp === CELL_TYPE.NUMBER || cell.tp === CELL_TYPE.STRING}
-      style={cell.style ? cell.style : null}
-      onValueChange={this.handleCellChange.bind(this, cell)}
-      onMouseEvent={this.handleMouseSelection}
-      onArrowKeyEvent={this.handleKeypress}
-      raw_data={cell.fn ? cell.vl : v}
-      tp={cell.tp} />
+      <NormalCell
+        key={cell.row + '.' + cell.col}
+        id={cell.row + '.' + cell.col}
+        content={format_data(v, cell.tp, cell.stp, cell.r_dec || this.props.options.rounding)}
+        editable={cell.tp === CellType.NUMBER || cell.tp === CellType.STRING}
+        style={cell.style ? cell.style : {}}
+        onValueChange={this.handleCellChange.bind(this, cell)}
+        onMouseEvent={this.handleMouseSelection}
+        onArrowKeyEvent={this.handleKeypress}
+        raw_data={cell.fn ? cell.vl : v}
+        tp={cell.tp}
+        isFocused={false} />
     )
   }
 
@@ -434,7 +479,7 @@ export default class Spreadsheet extends Component {
             </tr>
             {range(this.rows).map(row_num =>
               <tr id={'r' + row_num} key={'r' + row_num}>
-                <BorderCell key={'r' + row_num + '_'} id={'r' + row_num + '_'} className="border-left" content={row_num+1} />
+                <BorderCell key={'r' + row_num + '_'} id={'r' + row_num + '_'} className="border-left" content={String(row_num+1)} />
                 {range(this.columns).map(col_num => this.render_cell(this.data[row_num][col_num]))}
               </tr>
             )}
