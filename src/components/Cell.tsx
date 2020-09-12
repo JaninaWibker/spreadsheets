@@ -7,6 +7,7 @@ import { CellType } from '../types/CellTypes'
 type BorderCellProps = {
   id: string, content: string, className: string
 }
+
 type CellProps = {
   id: string,
   content: number | string,

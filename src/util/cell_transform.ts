@@ -1,5 +1,5 @@
 import { generate_id_format } from './cell_id'
-import { lookup, destructure, default_value, is_formula, parse_formula } from './helpers'
+import { lookup, destructure, default_value, is_formula, parse_formula, cell_to_json_replacer } from './helpers'
 import type { Cell, CellId } from '../types/Spreadsheet'
 import { CellType } from '../types/CellTypes'
 
@@ -72,8 +72,8 @@ const recurse = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]
   if(cell.visited) return // already visited; no need to recalculate _vl and do recursing again
   console.log('calling recurse for ' + generate_id_format(cell._id))
   cell.refs.forEach(ref_id => {
-    if(origin_cell[0] === ref_id[0] && origin_cell[1] === ref_id[1]) {
-      // recursive data structure / circular references (TODO: does this really catch all recursive data structures?; i don't really think this catches everything :/)
+    if(origin_cell[0] === ref_id[0] && origin_cell[1] === ref_id[1]) { // TODO: this does not catch every circular data structure: this needs to be a bit more sophisticated. Could try some graph theory algorithms for finding loops
+      // recursive data structure / circular references
       throw new Error("circular references")
     }
     console.log(ref_id, data[ref_id[0]])
@@ -84,11 +84,15 @@ const recurse = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]
     if(ref.fn) {
       ref._vl = ref.fn((cell_id: string) => (get_cell(lib, data, identifier_cells)(cell_id, ref._id, false, origin_cell)), lib)
       console.log('calculated value for cell ' + generate_id_format(ref._id) + ' (' + ref._vl + ')')
+      const maybe_err = check_errors(ref)
+      if(maybe_err !== undefined) ref.err = maybe_err
     }
   })
   if(cell.fn) {
     cell._vl = cell.fn((cell_id: string) => (get_cell(lib, data, identifier_cells)(cell_id, cell._id, false, origin_cell)), lib)
     console.log('calculated value for cell ' + generate_id_format(cell._id) + ' (' + cell._vl + ')')
+    const maybe_err = check_errors(cell)
+    if(maybe_err !== undefined) cell.err = maybe_err
   }
   cell.visited = true
 }
@@ -115,6 +119,28 @@ const descend = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]
   return cell
 }
 
+const check_errors = (cell: Cell): Error | undefined => {
+  switch(cell.tp) {
+    case CellType.NUMBER: {
+      if(typeof(cell._vl) !== "number" || isNaN(cell._vl)) {
+        return new Error('#NaN')
+      }
+    } break;
+    case CellType.STRING: {
+      // strings pretty much accept anything; no need to do anything here
+    } break;
+    case CellType.EMPTY: {
+      if(!cell._vl) {
+        return new Error('empty cell but somehow has a value')
+      }
+    } break;
+
+    default: {
+      throw new Error(`handle additional cell type ${cell.tp}.\n\n> the given cell looked like this:\n${JSON.stringify(cell, cell_to_json_replacer, 2)}`)
+    }
+  }
+}
+
 const transform = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId }) => {
 
   const new_data = data
@@ -133,6 +159,7 @@ export default {
   parse_formulas,
   descend,
   transform,
+  check_errors,
 }
 
 export {
@@ -141,4 +168,5 @@ export {
   parse_formulas,
   descend,
   transform,
+  check_errors,
 }

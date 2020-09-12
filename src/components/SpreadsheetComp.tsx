@@ -5,7 +5,7 @@ import { BorderCell, Cell as NormalCell } from './Cell'
 import Selection from './Selection'
 import { range, format_data, scroll_into_view_if_needed, parse_formula, lookup } from '../util/helpers'
 import { generate_col_id_format, generate_id_format } from '../util/cell_id'
-import { get_cell, transform } from '../util/cell_transform'
+import { get_cell, transform, check_errors } from '../util/cell_transform'
 import type { getCellCurried } from '../util/cell_transform'
 import { CellType } from '../types/CellTypes'
 import type { Cell, CellId, SpreadsheetOptions } from '../types/Spreadsheet'
@@ -67,7 +67,6 @@ export default class Spreadsheet extends Component<IProps, IState> {
   constructor(props: IProps) {
     super(props)
 
-    // TODO: transform this.props.data here (could some of this already happen while initially generating the cells (fillTable, ...)?; adding extra values, parsing formulas, building inverse dependency tree)
     this.data    = transform(lib, this.props.data, IDENTIFIER_CELLS)
     this.name    = this.props.name
     this.columns = this.data[0].length
@@ -98,7 +97,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
     }
   }
 
-  componentDidUpdate(_prevProps: Readonly<IProps> & Readonly<{ children?: any }>) { // TODO: use ReactNode instead of any
+  componentDidUpdate(_prevProps: Readonly<IProps> & Readonly<{ children?: React.ReactNode }>) {
     if(this.name !== this.props.name) {
       this.name    = this.props.name
       this.data    = transform(lib, this.props.data, IDENTIFIER_CELLS)
@@ -287,10 +286,12 @@ export default class Spreadsheet extends Component<IProps, IState> {
       try {
         cell._vl = cell.fn!((cell_id: string) => (this.g(cell_id, cell._id, false, this.data[row][col]._id)), lib)
         console.log(generate_id_format(cell._id) + ' updated to ' + cell._vl)
-        // TODO: handle format errors here as well?
       } catch(err) {
         cell.err = err
       }
+
+      const maybe_err = check_errors(cell)
+      if(maybe_err !== undefined) cell.err = maybe_err
 
       cell.changes.map(([row, col]) => recurse(this.data[row][col], self))
 
@@ -300,7 +301,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
     this.update(cell._id)
   }
 
-  render_cell(cell: Cell) { // TODO: this function is called ALL THE TIME for EVERY CELL, realistically it only needs to be called on first render and maybe when a cells needs explicit updating
+  render_cell(cell: Cell) {
 
     const v = this.g(cell.id, cell._id, true, cell._id) // TODO: this might need to change when `g` changes
 
@@ -310,7 +311,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
       <NormalCell
         key={cell.row + '.' + cell.col}
         id={cell.row + '.' + cell.col}
-        content={format_data(v, cell.tp, cell.stp, cell.r_dec || this.props.options.rounding)}
+        content={cell.err ? cell.err.message : format_data(v, cell.tp, cell.stp, cell.r_dec || this.props.options.rounding)}
         editable={cell.tp === CellType.NUMBER || cell.tp === CellType.STRING}
         style={cell.style ? cell.style : {}}
         onValueChange={this.handleCellChange.bind(this, cell)}

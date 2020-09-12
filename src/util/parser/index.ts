@@ -138,7 +138,7 @@ const compile_inner = (ast: AST): string => {
 
     case 'or':                    return _compile_binary_operator('||',  ast.val)
     case 'and':                   return _compile_binary_operator('&&',  ast.val)
-    case 'inequality':            return _compile_binary_operator('!=)', ast.val)
+    case 'inequality':            return _compile_binary_operator('!==', ast.val)
     case 'equality':              return _compile_binary_operator('===', ast.val)
     case 'greater_than':          return _compile_binary_operator('>',   ast.val)
     case 'less_than':             return _compile_binary_operator('<',   ast.val)

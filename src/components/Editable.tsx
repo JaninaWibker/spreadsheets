@@ -1,4 +1,4 @@
-import React, { Component, ReactComponentElement } from 'react'
+import React, { Component } from 'react'
 import '../css/editable.css'
 
 interface IProps {

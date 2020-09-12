@@ -5,8 +5,11 @@ what is still left to do:
 - [x] compute/parse all formulas before rendering
 - [ ] better error handling
 - [ ] blurry the lines between "STRING", "NUMBER", and "EMPTY" cells (maybe even completely remove them or just make it so that they can switch freely from one to the other)
-- [ ] maybe refactor Spreadsheet.js a bit
-- [ ] write standard library for the formulas
+- [x] maybe refactor Spreadsheet.js a bit
+- [x] write standard library for the formulas
 - [ ] add more keyboard shortcuts (like backspace for a selection / single cell for example)
-- [ ] add transpiling for range operator (maybe just use an array for this?)
-- [ ] run the parsing in a webworker, this way the main thread does not crash when the parser is stuck in an infinite loop (and the main thread can potentially time out the worker after x milliseconds)
+- [x] add transpiling for range operator (maybe just use an array for this?)
+- [x] create basic file format
+- [ ] manage cell focus better
+- [ ] improve error reporting inside transpiled (formula) code
+- [ ] add boolean value cell type and maybe date type (this could be a subtype of string to be honest. This means that instead of `number | string` being accepted everywhere it would need to be `number | string | boolean | Date`)

@@ -59,13 +59,21 @@ const format_data = (data: number | string | undefined, tp: CellType, stp: CellS
     if(stp === CellSubType.LOWERCASE) return marked((data as string).toLowerCase())
     else return marked(String(data))
   } else if(tp === CellType.EMPTY) {
-    // TODO: this is just here for debugging
-    return '<empty>'
+    return ''
   } else {
     return data
   }
 }
 
+const cell_to_json_replacer = (k: any, v: any) => {
+  if(Array.isArray(v) && (k === '_id' || k === 'refs' || k === 'changes')) {
+    return JSON.stringify(v)
+  } else if(typeof(v) === 'function') {
+    return v.toString()
+  } else {
+    return v
+  }
+}
 
 
 // Viewport stuff (for scrolling when moving the selection)
@@ -121,6 +129,7 @@ export default {
   Alphabet,
   alphabet,
   lookup,
+  cell_to_json_replacer,
 }
 
 export {
@@ -137,4 +146,5 @@ export {
   Alphabet,
   alphabet,
   lookup,
+  cell_to_json_replacer,
 }

@@ -91,6 +91,7 @@ const lib = {
       default: return 0 // TODO: could this be treated as an empty string maybe?
     }
   },
+  now: () => new Date(),
 }
 
 export type LibType = typeof lib
