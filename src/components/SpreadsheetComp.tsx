@@ -81,10 +81,6 @@ export default class Spreadsheet extends Component<IProps, IState> {
         start_y: 0,
         end_x: 0,
         end_y: 0,
-        // _start_x: 0,
-        // _start_y: 0,
-        // _end_x: 0,
-        // _end_y: 0
       },
       focused: {
         x: 0,
@@ -127,28 +123,64 @@ export default class Spreadsheet extends Component<IProps, IState> {
   }
 
   handleMouseSelection = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, id: string) => {
-    const [row, col] = id.split('.')
-    if(e.type === 'mousedown')
-      this.setState({selection: {
-        start_x: parseInt(col, 10),
-        start_y: parseInt(row, 10),
-        end_x: parseInt(col, 10),
-        end_y: parseInt(row, 10)
+    const [row_str, col_str] = id.split('.')
+    const row = parseInt(row_str, 10)
+    const col = parseInt(col_str, 10)
+    const whole_row = col_str === '_' // if column is unspecified it means whole row
+    const whole_col = row_str === '_' // if row is unspecified it means whole column
+
+    const modifiers = (({ shiftKey, altKey, metaKey, ctrlKey }) => ({
+      shift: shiftKey, alt: altKey, meta: metaKey, ctrl: ctrlKey
+    }))(e)
+
+    if(e.type === 'mousedown') { // start dragging OR shift-clicking
+      if(modifiers.shift) {
+        this.setState({ selection: {
+          start_x:  this.state.selection.start_x,
+          start_y:  this.state.selection.start_y,
+          end_x:    col,
+          end_y:    row,
+        }})
+      } else {
+        this.setState({ selection: {
+          start_x:  col,
+          start_y:  row,
+          end_x:    col,
+          end_y:    row,
+        }})
+      }
+    } else if(e.type === 'mouseup') { // stop dragging
+      this.setState({ selection: {
+        start_x:  this.state.selection.start_x,
+        start_y:  this.state.selection.start_y,
+        end_x:    col,
+        end_y:    row,
       }})
-    else if(e.type === 'mouseup')
-      this.setState({selection: {
-        start_x: this.state.selection.start_x,
-        start_y: this.state.selection.start_y,
-        end_x: parseInt(col, 10),
-        end_y: parseInt(row, 10)
+    } else if(e.type === 'mouseenter' && e.buttons === 1) { // dragging (without explicitely starting or stopping)
+      this.setState({ selection: {
+        start_x:  this.state.selection.start_x,
+        start_y:  this.state.selection.start_y,
+        end_x:    col,
+        end_y:    row,
       }})
-    else if(e.type === 'mouseenter' && e.buttons === 1)
-      this.setState({selection: {
-        start_x: this.state.selection.start_x,
-        start_y: this.state.selection.start_y,
-        end_x: parseInt(col, 10),
-        end_y: parseInt(row, 10)
-      }})
+    } else if(e.type === 'click') { // clicking on border cell
+      if(modifiers.shift) { // enlarge selection (using start of selection)
+        this.setState({ selection: {
+          start_x: whole_row ? 0 : this.state.selection.start_x,
+          start_y: whole_col ? 0 : this.state.selection.start_y,
+          end_x:   whole_row ? this.state.dimensions.x-1 : col,
+          end_y:   whole_col ? this.state.dimensions.y-1 : row,
+        }})
+      } else {
+        console.log(`from ${whole_row ? 0 : col}.${whole_col ? 0 : row} to ${whole_row ? this.state.dimensions.x-1 : col}.${whole_col ? this.state.dimensions.y-1 : row}`)
+        this.setState({ selection: {
+          start_x:  whole_row ? 0 : col,
+          start_y:  whole_col ? 0 : row,
+          end_x:    whole_row ? this.state.dimensions.x-1 : col,
+          end_y:    whole_col ? this.state.dimensions.y-1 : row,
+        }})
+      }
+    }
   }
 
   handleKeypress = (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", shift: boolean, alt: boolean, ctrl: boolean, preventDefault: () => any) => {
@@ -165,6 +197,9 @@ export default class Spreadsheet extends Component<IProps, IState> {
     // TODO: which is how it currently works
 
     // TODO: set proper focus to the cell underneath the cursor; this allows pressing enter or similar to start editing
+
+    // TODO: probably not the right place to add this but escape should deselect any selected cells and delete / bspace 
+    // TODO: should delete contents of all selected cells (at ones; trigger update after all deletions are completed)
 
     preventDefault()
 
@@ -335,14 +370,15 @@ export default class Spreadsheet extends Component<IProps, IState> {
         <table className="table">
           <tbody>
             <tr id={'r0l'} key={'r0l'}>
-              <th className="border border-left-top" id={'c0r0_'} key={'c0r0_'}>{'/'}</th>
+              <BorderCell key={'_._'} id={'_._'} className="" onMouseEvent={this.handleMouseSelection} content="/" />
+              {/* <th className="border border-left-top" id={'_._'} key={'_._'} onClick={e => this.handleMouseSelection(e, '_._')}><div><span>{'/'}</span></div></th> */}
               {range(this.columns).map(col_num =>
-                  <BorderCell key={'c' + col_num + '_'} id={'c' + col_num + '_'} className="border-top" content={generate_col_id_format(col_num)} />
+                  <BorderCell key={'_.' + col_num} id={'_.' + col_num} className="border-top" content={generate_col_id_format(col_num)} onMouseEvent={this.handleMouseSelection} />
               )}
             </tr>
             {range(this.rows).map(row_num =>
               <tr id={'r' + row_num} key={'r' + row_num}>
-                <BorderCell key={'r' + row_num + '_'} id={'r' + row_num + '_'} className="border-left" content={String(row_num+1)} />
+                <BorderCell key={row_num + '._'} id={row_num + '._'} className="border-left" content={String(row_num+1)} onMouseEvent={this.handleMouseSelection} />
                 {range(this.columns).map(col_num => this.render_cell(this.data[row_num][col_num]))}
               </tr>
             )}

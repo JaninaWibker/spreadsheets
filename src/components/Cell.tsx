@@ -5,7 +5,10 @@ import '../css/cell.css'
 import { CellType } from '../types/CellTypes'
 
 type BorderCellProps = {
-  id: string, content: string, className: string
+  id: string,
+  content: string,
+  className: string,
+  onMouseEvent: (event: React.MouseEvent<HTMLDivElement, MouseEvent>, id: string) => any,
 }
 
 type CellProps = {
@@ -26,11 +29,11 @@ type GenericCellProps = CellProps & BorderCellProps & {
 }
 
 // TODO: make clicks on border cells select the whole row / column (maybe some special interaction with holding shift as well?)
-const BorderCell = ({id, content, className}: BorderCellProps) => (
+const BorderCell = ({id, content, className, onMouseEvent}: BorderCellProps) => (
   <th
     className={'border-cell border' + (className ? ' ' + className : '')}
-    onMouseDown={e => console.log(e.target, id)}
-    onMouseUp={e => console.log(e.target, id)} id={id}>
+    onClick={e => onMouseEvent ? onMouseEvent(e, id) : null}
+    id={id}>
       <div>
         <span>{content}</span>
       </div>
@@ -60,7 +63,7 @@ const Cell = ({id, content, style, editable=false, onValueChange, onMouseEvent, 
 
 const GenericCell = ({id, content, className, style, editable, isBorder=false, onValueChange, onMouseEvent, onArrowKeyEvent, raw_data, tp, isFocused}: GenericCellProps) =>
   isBorder
-    ? (<BorderCell id={id} content={content} className={className} />)
+    ? (<BorderCell id={id} content={content} className={className} onMouseEvent={onMouseEvent} />)
     : (<Cell id={id} content={content} style={style} editable={editable} onValueChange={onValueChange} onMouseEvent={onMouseEvent} onArrowKeyEvent={onArrowKeyEvent} raw_data={raw_data} tp={tp} isFocused={isFocused} />)
 
 export { BorderCell, Cell, GenericCell }
