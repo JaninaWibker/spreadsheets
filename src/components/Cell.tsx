@@ -18,7 +18,7 @@ type CellProps = {
   editable: boolean,
   onValueChange: (value: string) => any,
   onMouseEvent: (event: React.MouseEvent<HTMLDivElement, MouseEvent>, id: string) => any,
-  onArrowKeyEvent: (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", shift: boolean, alt: boolean, ctrl: boolean, preventDefault: () => any) => any,
+  onArrowKeyEvent: (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", shift: boolean, alt: boolean, ctrl: boolean, meta: boolean, preventDefault: () => any) => any,
   raw_data: any,
   tp: CellType,
   isFocused: boolean
@@ -28,7 +28,6 @@ type GenericCellProps = CellProps & BorderCellProps & {
   isBorder: boolean
 }
 
-// TODO: make clicks on border cells select the whole row / column (maybe some special interaction with holding shift as well?)
 const BorderCell = ({id, content, className, onMouseEvent}: BorderCellProps) => (
   <th
     className={'border-cell border' + (className ? ' ' + className : '')}

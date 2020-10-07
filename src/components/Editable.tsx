@@ -8,7 +8,7 @@ interface IProps {
   setInnerHTML: boolean,
   isFocused: boolean, // TODO: this is not being used?
   cb: (value: string) => any,
-  onArrowKeyEvent?: (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", shift: boolean, alt: boolean, ctrl: boolean, preventDefault: () => any) => any
+  onArrowKeyEvent?: (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", shift: boolean, alt: boolean, ctrl: boolean, meta: boolean, preventDefault: () => any) => any
 }
 
 interface IState {
@@ -151,7 +151,7 @@ export default class Editable extends Component<IProps, IState> {
       else if(e.key === 'Escape') this.cancelEdit()
     } else if(e.target.nodeName === 'SPAN') {
       if((e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowRight' || e.key === 'ArrowDown') && this.props.onArrowKeyEvent) {
-        this.props.onArrowKeyEvent(e.key, e.shiftKey, e.altKey, e.ctrlKey || e.metaKey, e.preventDefault.bind(e))
+        this.props.onArrowKeyEvent(e.key, e.shiftKey, e.altKey, e.ctrlKey, e.metaKey, e.preventDefault.bind(e))
       } else if(e.key === 'Backspace') {
         this.setState({text: '', pretty_text: '', old_text: ''}, () => this.props.cb(''))
       } else if(e.altKey || e.metaKey || e.shiftKey) {

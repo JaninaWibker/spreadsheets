@@ -9,6 +9,7 @@ import { get_cell, transform, check_errors } from '../util/cell_transform'
 import type { getCellCurried } from '../util/cell_transform'
 import { CellType } from '../types/CellTypes'
 import type { Cell, CellId, SpreadsheetOptions } from '../types/Spreadsheet'
+import platformDetection from '../util/platform-detection'
 
 import lib from '../util/stdlib'
 
@@ -183,13 +184,9 @@ export default class Spreadsheet extends Component<IProps, IState> {
     }
   }
 
-  handleKeypress = (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", shift: boolean, alt: boolean, ctrl: boolean, preventDefault: () => any) => {
+  handleKeypress = (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", shift: boolean, alt: boolean, ctrl: boolean, meta: boolean, preventDefault: () => any) => {
     const sx: number = { ArrowLeft: -1, ArrowRight: 1, ArrowUp:  0, ArrowDown: 0 }[key] || 0
     const sy: number = { ArrowLeft:  0, ArrowRight: 0, ArrowUp: -1, ArrowDown: 1 }[key] || 0
-
-    // TODO: ctrl snaps to edge (should also work together with alt)
-
-    // TODO: tab should select the next cell (shift tab inverse; ctrl either no difference or input completely ignored)
 
     // TODO: if currently at pos1 and using shift to select an area that spans
     // TODO: from pos1 to pos2 and then pressing an arrow key without shift or
@@ -198,16 +195,23 @@ export default class Spreadsheet extends Component<IProps, IState> {
 
     // TODO: set proper focus to the cell underneath the cursor; this allows pressing enter or similar to start editing
 
+    // TODO: tab should select the next cell (shift tab inverse; ctrl either no difference or input completely ignored)
+
     // TODO: probably not the right place to add this but escape should deselect any selected cells and delete / bspace 
     // TODO: should delete contents of all selected cells (at ones; trigger update after all deletions are completed)
+
+    const mod = platformDetection.isMacOrIos() ? meta : ctrl // choose appropriate modifier for platform
+
+    const asx = sx * (mod ? this.state.dimensions.x : 1) // adjusted change in x direction
+    const asy = sy * (mod ? this.state.dimensions.y : 1) // adjusted change in y direction
 
     preventDefault()
 
     this.setState({selection: {
-      start_x: Math.min(this.state.dimensions.x-1, Math.max(0, this.state.selection.start_x + ((shift && !alt) ? 0 : sx))),
-      start_y: Math.min(this.state.dimensions.y-1, Math.max(0, this.state.selection.start_y + ((shift && !alt) ? 0 : sy))),
-      end_x: Math.min(this.state.dimensions.x-1, Math.max(0, ((alt || shift) ? this.state.selection.end_x : this.state.selection.start_x) + sx)),
-      end_y: Math.min(this.state.dimensions.y-1, Math.max(0, ((alt || shift) ? this.state.selection.end_y : this.state.selection.start_y) + sy)),
+      start_x: Math.min(this.state.dimensions.x-1, Math.max(0, this.state.selection.start_x + ((shift && !alt) ? 0 : asx))),
+      start_y: Math.min(this.state.dimensions.y-1, Math.max(0, this.state.selection.start_y + ((shift && !alt) ? 0 : asy))),
+      end_x: Math.min(this.state.dimensions.x-1, Math.max(0, ((alt || shift) ? this.state.selection.end_x : this.state.selection.start_x) + asx)),
+      end_y: Math.min(this.state.dimensions.y-1, Math.max(0, ((alt || shift) ? this.state.selection.end_y : this.state.selection.start_y) + asy)),
     }, focused: {
       x: this.state.selection.start_x,
       y: this.state.selection.start_y
