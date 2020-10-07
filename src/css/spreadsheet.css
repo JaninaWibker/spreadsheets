@@ -47,32 +47,32 @@ table.table td.selected span {
 }
 
 
-/*  width & height for the outer most cells with the 'index' (A, B, C...; 1, 2, 3...) */
+/*  width & height for the outer most cells with the 'index' (A, B, C...; 1, 2, 3...); aka border cells */
 table.table th {
-  width: var(--index-cell-width-px);
-  height: var(--index-cell-height-px);
+  width: var(--border-cell-width-px);
+  height: var(--border-cell-height-px);
 }
 
 /*  the left-most and top-most cell (0/0 technically; the one with the '/').
-    This needs to have both width & height from the index_cell constants instead of only one of them */
+    This needs to have both width & height from the border_cell constants instead of only one of them */
 table.table th.border.border-left-top {
-  width: var(--index-cell-width-px);
-  height: var(--index-cell-height-px);
+  width: var(--border-cell-width-px);
+  height: var(--border-cell-height-px);
 }
 
 /*  **top-most row**
     settings the width to the default cell width (because this has to fit to the normal cells)
-    but setting the height to the index cell height (this does not have to fit to the normal cells) */
+    but setting the height to the border cell height (this does not have to fit to the normal cells) */
 table.table th.border.border-top {
   width: var(--cell-width-px);
-  height: var(--index-cell-height-px);
+  height: var(--border-cell-height-px);
 }
 
 /*  **left-most row**
     setting the height to the default cell height (because this has to fit to the normal cells)
-    but setting the width to the index cell width (this does not have t ofit to the normal cells) */
+    but setting the width to the border cell width (this does not have t ofit to the normal cells) */
 table.table th.border.border-left {
-  width: var(--index-cell-width-px);
+  width: var(--border-cell-width-px);
   height: var(--cell-height-px);
 }
 

@@ -2,6 +2,7 @@ import { generate_id_format } from './cell_id'
 import { lookup, destructure, default_value, is_formula, parse_formula, cell_to_json_replacer } from './helpers'
 import type { Cell, CellId } from '../types/Spreadsheet'
 import { CellType } from '../types/CellTypes'
+import { get_cycles } from '../util/cycle_detection'
 
 type LibType = any // TODO: can this be specified **a little bit** further without making requirements for what the standard library actually is (it is purposefully injected and not imported to be environment agnostic; using object or { [key: string]: any } does not work, it being a mapping from strings to either functions or numbers is what the type should describe)
 
@@ -39,12 +40,6 @@ const get_cell = (lib: LibType, data: Cell[][], identifier_cells: { [key: string
     // if the array does exist already, the id of the cell is just pushed to it
     if(c_row !== rc_row || c_col !== rc_col) {
       console.log('caller', rcc, 'current', cell)
-
-      // if(Array.isArray(cell.changes) && !cell.changes.includes(rcc.id)) { // TODO: this technically needs to be more sophisticated now as ids aren't just strings anymore but this code will be removed soon so it shouldn't really matter
-      //   // c.changes.push(rcc._id)
-      // }
-
-
       console.log(destructure(rcc, ['id', 'changes', 'visited']), destructure(cell, ['id', 'changes', 'visited']))
     }
 
@@ -141,10 +136,31 @@ const check_errors = (cell: Cell): Error | undefined => {
   }
 }
 
+const check_circular = (data: Cell[][]): Cell[][] => {
+
+  const find_index_by_cell_id = (nodes: Cell[], [row, col]: CellId): number => nodes.findIndex(node => node._id[0] === row && node._id[1] === col)
+
+  const nodes: Cell[] = data.flat()
+  const edges: { [key: number]: number[]} = Object.fromEntries(nodes
+    .map(node => node.refs.map(id => find_index_by_cell_id(nodes, id)))
+    .map((cell, i) => [i, cell])
+  )
+
+  const cycles = get_cycles(nodes, edges)
+
+  if(cycles.length !== nodes.length) {
+    // TODO: find the relevant nodes and add corresponding error messages
+    console.log(cycles)
+  }
+  
+  return data
+}
+
 const transform = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId }) => {
 
-  const new_data = data
+  const new_data = check_circular(data
     .map((row, _i)               => row.map(cell => parse_formulas(identifier_cells, cell)))
+  )
     .map((row, _i, current_data) => row.map(cell => descend(lib, current_data, identifier_cells, cell)))
     .map((row)                   => row.map(cell => ({...cell, visited: false})))
 

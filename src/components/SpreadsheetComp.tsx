@@ -9,7 +9,7 @@ import { get_cell, transform, check_errors } from '../util/cell_transform'
 import type { getCellCurried } from '../util/cell_transform'
 import { CellType } from '../types/CellTypes'
 import type { Cell, CellId, SpreadsheetOptions } from '../types/Spreadsheet'
-import platformDetection from '../util/platform-detection'
+import platform_detection from '../util/platform-detection'
 
 import lib from '../util/stdlib'
 
@@ -17,15 +17,15 @@ import lib from '../util/stdlib'
 const CELL_WIDTH = 224 // TODO: apparently this should be configurable via this.props.options (don't know if this is really needed though)
 const CELL_HEIGHT = 25
 
-const INDEX_CELL_WIDTH = 80 // TODO: these are just the border cells or am I wrong?
-const INDEX_CELL_HEIGHT = 25
+const BORDER_CELL_WIDTH = 80
+const BORDER_CELL_HEIGHT = 25
 
 // settings associated css variables in order to be able to access these constants from within css
 document.documentElement.style.setProperty('--cell-width-px', CELL_WIDTH + 'px');
 document.documentElement.style.setProperty('--cell-height-px', CELL_HEIGHT + 'px');
 
-document.documentElement.style.setProperty('--index-cell-width-px', INDEX_CELL_WIDTH + 'px');
-document.documentElement.style.setProperty('--index-cell-height-px', INDEX_CELL_HEIGHT + 'px');
+document.documentElement.style.setProperty('--border-cell-width-px', BORDER_CELL_WIDTH + 'px');
+document.documentElement.style.setProperty('--border-cell-height-px', BORDER_CELL_HEIGHT + 'px');
 
 const IDENTIFIER_CELLS: { [key: string]: CellId } = {}
 
@@ -188,11 +188,6 @@ export default class Spreadsheet extends Component<IProps, IState> {
     const sx: number = { ArrowLeft: -1, ArrowRight: 1, ArrowUp:  0, ArrowDown: 0 }[key] || 0
     const sy: number = { ArrowLeft:  0, ArrowRight: 0, ArrowUp: -1, ArrowDown: 1 }[key] || 0
 
-    // TODO: if currently at pos1 and using shift to select an area that spans
-    // TODO: from pos1 to pos2 and then pressing an arrow key without shift or
-    // TODO: alt it should act as if the current position is pos2, not pos1
-    // TODO: which is how it currently works
-
     // TODO: set proper focus to the cell underneath the cursor; this allows pressing enter or similar to start editing
 
     // TODO: tab should select the next cell (shift tab inverse; ctrl either no difference or input completely ignored)
@@ -200,7 +195,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
     // TODO: probably not the right place to add this but escape should deselect any selected cells and delete / bspace 
     // TODO: should delete contents of all selected cells (at ones; trigger update after all deletions are completed)
 
-    const mod = platformDetection.isMacOrIos() ? meta : ctrl // choose appropriate modifier for platform
+    const mod = platform_detection.isMacOrIos() ? meta : ctrl // choose appropriate modifier for platform
 
     const asx = sx * (mod ? this.state.dimensions.x : 1) // adjusted change in x direction
     const asy = sy * (mod ? this.state.dimensions.y : 1) // adjusted change in y direction
@@ -368,8 +363,8 @@ export default class Spreadsheet extends Component<IProps, IState> {
   render() {
     return (
       <div style={{
-        width: (((this.data[0].length) * CELL_WIDTH) + INDEX_CELL_WIDTH + 1) + 'px',
-        height: (((this.data.length) * CELL_HEIGHT) + INDEX_CELL_HEIGHT + 1) + 'px'
+        width: (((this.data[0].length) * CELL_WIDTH) + BORDER_CELL_WIDTH + 1) + 'px',
+        height: (((this.data.length) * CELL_HEIGHT) + BORDER_CELL_HEIGHT + 1) + 'px'
       }}>
         <table className="table">
           <tbody>
@@ -393,7 +388,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
           end=  {{ x: this.state.selection.end_x,   y: this.state.selection.end_y }}
           constants={{
             cell_width:       CELL_WIDTH,       cell_height:       CELL_HEIGHT,
-            index_cell_width: INDEX_CELL_WIDTH, index_cell_height: INDEX_CELL_HEIGHT}}
+            index_cell_width: BORDER_CELL_WIDTH, index_cell_height: BORDER_CELL_HEIGHT}}
         />
       </div>
     )
