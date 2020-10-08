@@ -1,6 +1,10 @@
 const UNVISITED = -1
 
-const tarjans_algorithm = <Node>(nodes: Node[], edges: { [key: number]: number[] }): { lowlink: number[], id: number[], scc_count: number } => {
+type Edges = {
+  [key: number]: number[]
+}
+
+const tarjans_algorithm = <Node>(nodes: Node[], edges: Edges): { lowlink: number[], id: number[], scc_count: number } => {
   const n = nodes.length
   let curr_id = 0
   let scc_count = 0
@@ -47,9 +51,15 @@ const tarjans_algorithm = <Node>(nodes: Node[], edges: { [key: number]: number[]
   return { lowlink, id, scc_count }
 }
 
-const cycle_count = <Node>(nodes: Node[], edges: { [key: number]: number[] }): number => tarjans_algorithm(nodes, edges).scc_count
+const find_cycle_starting_from_node = (edges: Edges, node: number, prev = node, target = node, first_call = true): number[] => {
+  if(node === target && !first_call) return [prev]
+  const rest = edges[node].flatMap(to => to === node ? [] : find_cycle_starting_from_node(edges, to, node, target, false))
+  return first_call || rest.length === 0 ? rest : [prev, ...rest]
+}
 
-const get_cycles = <Node>(nodes: Node[], edges: { [key: number]: number[] }): Node[][] => {
+const cycle_count = <Node>(nodes: Node[], edges: Edges): number => tarjans_algorithm(nodes, edges).scc_count
+
+const get_cycles = <Node>(nodes: Node[], edges: Edges): Node[][] => {
   const { lowlink, id, scc_count } = tarjans_algorithm(nodes, edges)
 
   const rtn: Node[][] = Array.from({ length: scc_count }).map(() => []) as Node[][] // cannot use .fill([]) here as all references are the same
@@ -65,11 +75,13 @@ const get_cycles = <Node>(nodes: Node[], edges: { [key: number]: number[] }): No
 export default {
   tarjans_algorithm,
   cycle_count,
-  get_cycles
+  get_cycles,
+  find_cycle_starting_from_node
 }
 
 export {
   tarjans_algorithm,
   cycle_count,
-  get_cycles
+  get_cycles,
+  find_cycle_starting_from_node
 }

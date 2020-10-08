@@ -115,6 +115,8 @@ const lookup = (cell_id: string, identifier_cells: { [key: string]: CellId }): [
   }
 }
 
+const compare_cell_ids = ([row1, col1]: CellId, [row2, col2]: CellId) => row1 === row2 && col1 === col2
+
 export default {
   range,
   round,
@@ -129,6 +131,7 @@ export default {
   Alphabet,
   alphabet,
   lookup,
+  compare_cell_ids,
   cell_to_json_replacer,
 }
 
@@ -146,5 +149,6 @@ export {
   Alphabet,
   alphabet,
   lookup,
+  compare_cell_ids,
   cell_to_json_replacer,
 }

@@ -3,13 +3,13 @@ what is still left to do:
 - [x] when the input of a cell starts with "=" treat is as a formula
 - [x] allow functions / formulas that return strings (currently only "NUMBER"-cells are supported by the g function)
 - [x] compute/parse all formulas before rendering
-- [ ] better error handling
-- [ ] blurry the lines between "STRING", "NUMBER", and "EMPTY" cells (maybe even completely remove them or just make it so that they can switch freely from one to the other)
 - [x] maybe refactor Spreadsheet.js a bit
 - [x] write standard library for the formulas
-- [ ] add more keyboard shortcuts (like backspace for a selection / single cell for example)
 - [x] add transpiling for range operator (maybe just use an array for this?)
 - [x] create basic file format
+- [ ] better error handling
+- [ ] blurry the lines between "STRING", "NUMBER", and "EMPTY" cells (maybe even completely remove them or just make it so that they can switch freely from one to the other)
+- [ ] add more keyboard shortcuts (like backspace for a selection / single cell for example)
 - [ ] manage cell focus better
 - [ ] improve error reporting inside transpiled (formula) code
 - [ ] add boolean value cell type and maybe date type (this could be a subtype of string to be honest. This means that instead of `number | string` being accepted everywhere it would need to be `number | string | boolean | Date`)

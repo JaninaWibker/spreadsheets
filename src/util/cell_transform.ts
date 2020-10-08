@@ -1,5 +1,5 @@
 import { generate_id_format } from './cell_id'
-import { lookup, destructure, default_value, is_formula, parse_formula, cell_to_json_replacer } from './helpers'
+import { lookup, destructure, default_value, is_formula, parse_formula, cell_to_json_replacer, compare_cell_ids } from './helpers'
 import type { Cell, CellId } from '../types/Spreadsheet'
 import { CellType } from '../types/CellTypes'
 import { get_cycles } from '../util/cycle_detection'
@@ -44,6 +44,7 @@ const get_cell = (lib: LibType, data: Cell[][], identifier_cells: { [key: string
     }
 
     if(!cell.fn) return cell.vl
+    if(cell.err !== undefined) return undefined // cell.err // TODO: should probably return the real error here
     if(cell.fn) {
       // if already calculated then add visited = true, else check if it is a circular call and if it is
       // return the default value for this data type, else calculate the value by executing the function
@@ -65,16 +66,19 @@ const get_cell = (lib: LibType, data: Cell[][], identifier_cells: { [key: string
 
 const recurse = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId }, cell: Cell, origin_cell: CellId) => {
   if(cell.visited) return // already visited; no need to recalculate _vl and do recursing again
+  if(cell.err !== undefined) {
+    cell.visited = true
+    return
+  }
   console.log('calling recurse for ' + generate_id_format(cell._id))
   cell.refs.forEach(ref_id => {
-    if(origin_cell[0] === ref_id[0] && origin_cell[1] === ref_id[1]) { // TODO: this does not catch every circular data structure: this needs to be a bit more sophisticated. Could try some graph theory algorithms for finding loops
-      // recursive data structure / circular references
-      throw new Error("circular references")
-    }
     console.log(ref_id, data[ref_id[0]])
     const ref = data[ref_id[0]][ref_id[1]]
-    ref.changes.push(cell._id)
     if(ref.visited) return // already visited this ref; no need to recalcualte _vl and recurse further
+    if(ref.err !== undefined) { // if a circular datastructure is detected an error is added. This stops all further recursion at that point
+      cell.visited = true
+      return
+    }
     recurse(lib, data, identifier_cells, ref, origin_cell)
     if(ref.fn) {
       ref._vl = ref.fn((cell_id: string) => (get_cell(lib, data, identifier_cells)(cell_id, ref._id, false, origin_cell)), lib)
@@ -83,7 +87,7 @@ const recurse = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]
       if(maybe_err !== undefined) ref.err = maybe_err
     }
   })
-  if(cell.fn) {
+  if(cell.fn && cell.err !== undefined) {
     cell._vl = cell.fn((cell_id: string) => (get_cell(lib, data, identifier_cells)(cell_id, cell._id, false, origin_cell)), lib)
     console.log('calculated value for cell ' + generate_id_format(cell._id) + ' (' + cell._vl + ')')
     const maybe_err = check_errors(cell)
@@ -105,12 +109,8 @@ const parse_formulas = (identifier_cells: { [key: string]: CellId }, cell: Cell)
 const descend = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId }, cell: Cell) => {
   cell.refs = cell.refs.map((ref: CellId) => typeof(ref) === 'string' ? lookup(ref, identifier_cells) : ref) as CellId[] // transform all refs into the [col, row] format
   console.warn(cell)
-  if(cell.refs.find((ref: CellId) => ref[0] === cell.row && ref[1] === cell.col)) {
-    cell.err = new Error("self-references not allowed")
-  } else {
-    console.log('-- recurse --')
-    recurse(lib, data, identifier_cells, cell, cell._id)
-  }
+  console.log('-- recurse --')
+  recurse(lib, data, identifier_cells, cell, cell._id)
   return cell
 }
 
@@ -136,31 +136,59 @@ const check_errors = (cell: Cell): Error | undefined => {
   }
 }
 
-const check_circular = (data: Cell[][]): Cell[][] => {
-
-  const find_index_by_cell_id = (nodes: Cell[], [row, col]: CellId): number => nodes.findIndex(node => node._id[0] === row && node._id[1] === col)
+const compute_nodes_and_edges = (data: Cell[][]) => {
+  const find_index_by_cell_id = (nodes: Cell[], [row, col]: CellId): number => nodes.findIndex(node => compare_cell_ids(node._id, [row, col]))
 
   const nodes: Cell[] = data.flat()
   const edges: { [key: number]: number[]} = Object.fromEntries(nodes
     .map(node => node.refs.map(id => find_index_by_cell_id(nodes, id)))
     .map((cell, i) => [i, cell])
   )
+  return { nodes, edges}
+}
+
+
+const check_circular = (data: Cell[][]): Cell[][] => {
+
+  const { nodes, edges } = compute_nodes_and_edges(data)
 
   const cycles = get_cycles(nodes, edges)
 
   if(cycles.length !== nodes.length) {
     // TODO: find the relevant nodes and add corresponding error messages
-    console.log(cycles)
+    const affected_cells = cycles.filter(cycle => cycle.length > 1 || cycle[0].refs.find(cell_id => compare_cell_ids(cell_id, cycle[0]._id)))
+
+    affected_cells.forEach(cycles => cycles.forEach(cell => {
+      cell.err = new Error(cycles.length === 1 ? '#Self references' : '#Circular references')
+    }))
+
+    console.log('cycle', affected_cells)
   }
-  
+
+  return data
+}
+
+const compute_changes = (data: Cell[][]) => {
+
+  const get_cell_by_id = (cell_id: CellId): Cell => data
+    .map(row => row.find(cell => compare_cell_ids(cell._id, cell_id)))
+    .find(cell => !!cell) as Cell
+
+  for(let row = 0; row < data.length; row++) {
+    for(let col = 0; col < data[row].length; col++) {
+      const cell = data[row][col]
+      cell.refs.map(get_cell_by_id).forEach(ref => ref.changes.push(cell._id))
+    }
+  }
+  console.log('cycle', data)
   return data
 }
 
 const transform = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId }) => {
 
-  const new_data = check_circular(data
+  const new_data = compute_changes(check_circular(data
     .map((row, _i)               => row.map(cell => parse_formulas(identifier_cells, cell)))
-  )
+  ))
     .map((row, _i, current_data) => row.map(cell => descend(lib, current_data, identifier_cells, cell)))
     .map((row)                   => row.map(cell => ({...cell, visited: false})))
 

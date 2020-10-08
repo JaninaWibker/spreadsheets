@@ -225,6 +225,8 @@ export default class Spreadsheet extends Component<IProps, IState> {
     // nothing has changed (this check only works if vl is a string; numbers are explicitly checked again later on)
     if(value === cell.vl) return
 
+    this.data[row][col].err = undefined // resetting error; if it still exists it's going to get recomputed
+
     // used to compute which cells need to have their changes array updated
     const old_refs = this.data[row][col].refs
 
@@ -258,6 +260,8 @@ export default class Spreadsheet extends Component<IProps, IState> {
     }
 
     console.log('value changed', this.data[row][col])
+
+    // TODO: how is re-checking for circular datastructures done? apparently it just isn't
 
     // when updating a cell the data structure becomes somewhat invalid:
     // each cell has a refs array and a changes array. The only thing that
