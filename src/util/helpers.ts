@@ -117,6 +117,22 @@ const lookup = (cell_id: string, identifier_cells: { [key: string]: CellId }): [
 
 const compare_cell_ids = ([row1, col1]: CellId, [row2, col2]: CellId) => row1 === row2 && col1 === col2
 
+// this basically calculates (A u B) \ (A n B) while also saving from which array each element is from
+const compute_additions_and_deletions = (new_arr: CellId[], old_arr: CellId[]) => {
+  const arr = old_arr.map(value => ({ from: 'old', value: value }))
+
+  new_arr.forEach(value => {
+    const idx = arr.findIndex(item => compare_cell_ids(item.value, value))
+    if(idx !== -1) {
+      arr.splice(idx, 1)
+    } else {
+      arr.push({ from: 'new', value: value })
+    }
+  })
+
+  return arr
+}
+
 export default {
   range,
   round,
@@ -132,6 +148,7 @@ export default {
   alphabet,
   lookup,
   compare_cell_ids,
+  compute_additions_and_deletions,
   cell_to_json_replacer,
 }
 
@@ -150,5 +167,6 @@ export {
   alphabet,
   lookup,
   compare_cell_ids,
+  compute_additions_and_deletions,
   cell_to_json_replacer,
 }

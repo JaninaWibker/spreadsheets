@@ -6,7 +6,7 @@ import { CellType, CellSubType } from '../types/CellTypes'
 // create specific cells, cells in general, whole Table, create Rows and Columns, fill in missing Ids
 
 const createCell = ([row, col]: CellId, tp: CellType=CellType.STRING, vl: number | string = '', stp?: CellSubType, fn?: CellEvaluateFn, style={}): Cell => ({
-  tp, stp, id: row + '.' + col, _id: [row, col], row, col, style, vl, _vl: '', err: undefined, fn, refs: [], changes: [], visited: false
+  tp, stp, id: row + '.' + col, _id: [row, col], row, col, style, vl, _vl: '', err: undefined, cycle: [], fn, refs: [], changes: [], visited: false
 })
 
 const createEmptyCell = (id: CellId) => createCell(id, CellType.EMPTY)
@@ -51,7 +51,7 @@ const fillTableIds = (height: number, width: number, array: Cell[][] | Unfinishe
         ? "id" in array[y][x]
           ? array[y][x] as Cell
           // @ts-ignore(2783): when considering the spread operator keys are overridden, BUT the order they appear in is not overridden. Since objects keep track of the order of keys this just makes it easier to look at as otherwise every second cell would have a different order 
-          : {tp: CellType.EMPTY, stp: undefined, id: '' + y + '.' + x, _id: [y, x], col: x, row: y, style: {}, vl: '', _vl: '', err: undefined, fn: undefined, refs: [], changes: [], visited: false, ...array[y][x]}
+          : {tp: CellType.EMPTY, stp: undefined, id: '' + y + '.' + x, _id: [y, x], col: x, row: y, style: {}, vl: '', _vl: '', err: undefined, cycle: [], fn: undefined, refs: [], changes: [], visited: false, ...array[y][x]}
         : createStringCell([y, x], '**WARNING**: MISSING CELL')
       )
     : createRow(0, width, y, createStringCell([-1, -1], '**WARNING**: MISSING CELL')

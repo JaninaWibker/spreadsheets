@@ -14,7 +14,7 @@ export default {
 export {
   isMacOrIos as isMac,
   isMacOrIos as isIos,
-  isMacOrIos as isMacOrIos,
+  isMacOrIos,
   isNotMacOrIos as isLinux,
   isNotMacOrIos as isWindows,
 }

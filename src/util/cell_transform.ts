@@ -30,7 +30,7 @@ const get_cell = (lib: LibType, data: Cell[][], identifier_cells: { [key: string
 
   if(cell === undefined) {
     console.log(target, call_cell, cell)
-    return '<error>'
+    return '<error>' // TODO: ???: shouldn't this be done somewhat better
   }
 
   if(cell.tp === CellType.EMPTY) return ''
@@ -44,6 +44,7 @@ const get_cell = (lib: LibType, data: Cell[][], identifier_cells: { [key: string
     }
 
     if(!cell.fn) return cell.vl
+    if(cell.cycle.length > 0) return undefined // TODO: should probably do this a bit different but i don't really know how atm
     if(cell.err !== undefined) return undefined // cell.err // TODO: should probably return the real error here
     if(cell.fn) {
       // if already calculated then add visited = true, else check if it is a circular call and if it is
@@ -66,7 +67,7 @@ const get_cell = (lib: LibType, data: Cell[][], identifier_cells: { [key: string
 
 const recurse = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId }, cell: Cell, origin_cell: CellId) => {
   if(cell.visited) return // already visited; no need to recalculate _vl and do recursing again
-  if(cell.err !== undefined) {
+  if(cell.cycle.length > 0) {
     cell.visited = true
     return
   }
@@ -75,10 +76,7 @@ const recurse = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]
     console.log(ref_id, data[ref_id[0]])
     const ref = data[ref_id[0]][ref_id[1]]
     if(ref.visited) return // already visited this ref; no need to recalcualte _vl and recurse further
-    if(ref.err !== undefined) { // if a circular datastructure is detected an error is added. This stops all further recursion at that point
-      cell.visited = true
-      return
-    }
+    if(ref.cycle.length > 0) return // if a circular datastructure is detected an error is added. This stops all further recursion at that point
     recurse(lib, data, identifier_cells, ref, origin_cell)
     if(ref.fn) {
       ref._vl = ref.fn((cell_id: string) => (get_cell(lib, data, identifier_cells)(cell_id, ref._id, false, origin_cell)), lib)
@@ -87,7 +85,7 @@ const recurse = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]
       if(maybe_err !== undefined) ref.err = maybe_err
     }
   })
-  if(cell.fn && cell.err !== undefined) {
+  if(cell.fn && cell.cycle.length === 0) {
     cell._vl = cell.fn((cell_id: string) => (get_cell(lib, data, identifier_cells)(cell_id, cell._id, false, origin_cell)), lib)
     console.log('calculated value for cell ' + generate_id_format(cell._id) + ' (' + cell._vl + ')')
     const maybe_err = check_errors(cell)
@@ -98,7 +96,7 @@ const recurse = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]
 
 const parse_formulas = (identifier_cells: { [key: string]: CellId }, cell: Cell) => {
   if(cell.name) {
-    identifier_cells[cell.name] = cell._id // TODO: should this be CellId or Cell?
+    identifier_cells[cell.name] = cell._id
   }
 
   const {fn, refs} = (is_formula(cell) && parse_formula((cell.vl as string).substring(1))) || { fn: undefined, refs: [] }
@@ -154,16 +152,13 @@ const check_circular = (data: Cell[][]): Cell[][] => {
 
   const cycles = get_cycles(nodes, edges)
 
-  if(cycles.length !== nodes.length) {
-    // TODO: find the relevant nodes and add corresponding error messages
-    const affected_cells = cycles.filter(cycle => cycle.length > 1 || cycle[0].refs.find(cell_id => compare_cell_ids(cell_id, cycle[0]._id)))
+  const affected_cells = cycles.filter(cycle => cycle.length > 1 || cycle[0].refs.find(cell_id => compare_cell_ids(cell_id, cycle[0]._id)))
 
-    affected_cells.forEach(cycles => cycles.forEach(cell => {
-      cell.err = new Error(cycles.length === 1 ? '#Self references' : '#Circular references')
-    }))
+  affected_cells.forEach(cycle => cycle.forEach(cell => {
+    cell.cycle = cycle.map(cell => cell._id)
+  }))
 
-    console.log('cycle', affected_cells)
-  }
+  if(affected_cells.length > 0) console.log('cycle', affected_cells)
 
   return data
 }

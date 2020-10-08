@@ -5,7 +5,7 @@ import { BorderCell, Cell as NormalCell } from './Cell'
 import Selection from './Selection'
 import { range, format_data, scroll_into_view_if_needed, parse_formula, lookup } from '../util/helpers'
 import { generate_col_id_format, generate_id_format } from '../util/cell_id'
-import { get_cell, transform, check_errors } from '../util/cell_transform'
+import { get_cell, transform, check_errors, check_circular_for_cell } from '../util/cell_transform'
 import type { getCellCurried } from '../util/cell_transform'
 import { CellType } from '../types/CellTypes'
 import type { Cell, CellId, SpreadsheetOptions } from '../types/Spreadsheet'
@@ -225,10 +225,14 @@ export default class Spreadsheet extends Component<IProps, IState> {
     // nothing has changed (this check only works if vl is a string; numbers are explicitly checked again later on)
     if(value === cell.vl) return
 
-    this.data[row][col].err = undefined // resetting error; if it still exists it's going to get recomputed
+    // TODO: why is this.data[row][col] used and not just cell? Is cell just a copy?
 
     // used to compute which cells need to have their changes array updated
     const old_refs = this.data[row][col].refs
+    const old_cycle = [...this.data[row][col].cycle]
+
+    this.data[row][col].err = undefined // resetting error; if it still exists it's going to get recomputed
+    this.data[row][col].cycle = []
 
     // if formula then assign new value to .vl and compute .fn
     if(value.startsWith('=')) {
@@ -261,8 +265,6 @@ export default class Spreadsheet extends Component<IProps, IState> {
 
     console.log('value changed', this.data[row][col])
 
-    // TODO: how is re-checking for circular datastructures done? apparently it just isn't
-
     // when updating a cell the data structure becomes somewhat invalid:
     // each cell has a refs array and a changes array. The only thing that
     // can happen when editing a single cell is that the refs array of this cell
@@ -278,17 +280,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
       this.data[row][col].err = new Error("self-references not allowed")
     } else {
       const new_refs = this.data[row][col].refs
-      const arr = old_refs.map(ref => ({ from: 'old', value: ref }))
-
-      // this basically calculates (A u B) \ (A n B) while also saving from which array each element is from
-      new_refs.forEach(ref => {
-        const idx = arr.findIndex(item => item.value[0] === ref[0] && item.value[1] === ref[1])
-        if(idx !== -1) {
-          arr.splice(idx, 1)
-        } else {
-          arr.push({ from: 'new', value: ref })
-        }
-      })
+      const arr = compute_additions_and_deletions(new_refs, old_refs)
 
       // from === 'old' -> deletion
       // from === 'new' -> addition
@@ -312,6 +304,8 @@ export default class Spreadsheet extends Component<IProps, IState> {
     // loop through every cell mentioned in the changes array and recursively descend from there and update all of their values;
     // as elements "higher up" in the tree are being used by ones lower in the tree the higher up ones need to have been evaluated
     // before traversing further down.
+    // Side Note: the changes array never changes by changing the formula EXCEPT when the formula was or is becoming a self
+    // referencing formula; this might need to be handled specially
     // Side Note: it's not actually a tree as two leaves can both update the same cell, so it actually is only a directed graph
     // but some cells are visited multiple times by different leaves and could re-evaluated so they could be seen as multiple
     // nodes in a sense. With this bending of the definition it would be a tree again.
@@ -330,7 +324,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
 
       const maybe_err = check_errors(cell)
       if(maybe_err !== undefined) cell.err = maybe_err
-
+      // TODO: can this handle circular datastructures properly? apparently not.
       cell.changes.map(([row, col]) => recurse(this.data[row][col], self))
 
     }
@@ -343,13 +337,24 @@ export default class Spreadsheet extends Component<IProps, IState> {
 
     const v = this.g(cell.id, cell._id, true, cell._id) // TODO: this might need to change when `g` changes
 
+    let content
+    if(cell.err) {
+      content = cell.err.message
+    } else if(cell.cycle.length === 1) {
+      content = '#Self reference'
+    } else if(cell.cycle.length > 0) {
+      content = '#Circular references'
+    } else {
+      content = format_data(v, cell.tp, cell.stp, cell.r_dec || this.props.options.rounding)
+    }
+
     // console.log('called for cell: ' + generate_id_format(cell._id) + ' new value: ' + v)
 
     return (
       <NormalCell
         key={cell.row + '.' + cell.col}
         id={cell.row + '.' + cell.col}
-        content={cell.err ? cell.err.message : format_data(v, cell.tp, cell.stp, cell.r_dec || this.props.options.rounding)}
+        content={content}
         editable={cell.tp === CellType.NUMBER || cell.tp === CellType.STRING}
         style={cell.style ? cell.style : {}}
         onValueChange={this.handleCellChange.bind(this, cell)}

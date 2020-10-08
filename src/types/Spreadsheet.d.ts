@@ -26,6 +26,7 @@ export type Cell = UnfinishedCell & {
   vl: number | string,
   _vl: number | string,
   err?: Error,
+  cycle: CellId[],
   fn?: CellEvaluateFn,
   refs: CellId[],
   changes: CellId[],

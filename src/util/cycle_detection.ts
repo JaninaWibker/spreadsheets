@@ -53,14 +53,14 @@ const tarjans_algorithm = <Node>(nodes: Node[], edges: Edges): { lowlink: number
 
 const find_cycle_starting_from_node = (edges: Edges, node: number, prev = node, target = node, first_call = true): number[] => {
   if(node === target && !first_call) return [prev]
-  const rest = edges[node].flatMap(to => to === node ? [] : find_cycle_starting_from_node(edges, to, node, target, false))
+  const rest = edges[node].flatMap(to => find_cycle_starting_from_node(edges, to, node, target, false))
   return first_call || rest.length === 0 ? rest : [prev, ...rest]
 }
 
 const cycle_count = <Node>(nodes: Node[], edges: Edges): number => tarjans_algorithm(nodes, edges).scc_count
 
 const get_cycles = <Node>(nodes: Node[], edges: Edges): Node[][] => {
-  const { lowlink, id, scc_count } = tarjans_algorithm(nodes, edges)
+  const { lowlink, scc_count } = tarjans_algorithm(nodes, edges)
 
   const rtn: Node[][] = Array.from({ length: scc_count }).map(() => []) as Node[][] // cannot use .fill([]) here as all references are the same
   for(let i = 0, curr_scc_idx = -1, seen: { [key: number]: number } = {}; i < lowlink.length; i++) {
