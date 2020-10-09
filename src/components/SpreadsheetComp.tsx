@@ -3,7 +3,7 @@ import '../css/spreadsheet.css'
 
 import { BorderCell, Cell as NormalCell } from './Cell'
 import Selection from './Selection'
-import { range, format_data, scroll_into_view_if_needed, parse_formula, lookup } from '../util/helpers'
+import { range, format_data, scroll_into_view_if_needed, parse_formula, lookup, compute_additions_and_deletions, compare_cell_ids } from '../util/helpers'
 import { generate_col_id_format, generate_id_format } from '../util/cell_id'
 import { get_cell, transform, check_errors, check_circular_for_cell } from '../util/cell_transform'
 import type { getCellCurried } from '../util/cell_transform'
@@ -114,8 +114,12 @@ export default class Spreadsheet extends Component<IProps, IState> {
     const cell = this.data[col][row]
 
     this.data[col][row].visited = false
-
-    if(cell.changes) cell.changes.map(this._update)
+    
+    if(cell.changes) {
+      cell.changes // filter out cells which are also in the same cycle as the current cell // TODO: does this filter out too much?; should they be updated at least once?
+        .filter(cell_id => !cell.cycle.find(cell_id_cycle => compare_cell_ids(cell_id, cell_id_cycle)))
+        .forEach(this._update)
+      }
   }
 
   update = (cell_id: CellId) => {
@@ -300,6 +304,30 @@ export default class Spreadsheet extends Component<IProps, IState> {
       })
     }
 
+    check_circular_for_cell(this.data, cell)
+
+    const new_cycle = this.data[row][col].cycle
+
+    if(new_cycle.length > 0 || old_cycle.length > 0) {
+      // changes that need to be performed on all involved cells
+      const arr = compute_additions_and_deletions(new_cycle, old_cycle).sort((a, b) => (+(b.from === 'old')) - (+(a.from === 'old')))
+
+      // update all existing cycle arrays, even if the array is going to be removed later on
+      old_cycle.forEach(([row, col]) => this.data[row][col].cycle = new_cycle)
+
+      // remove cycle arrays from now unused cells and add to newly added cells
+      arr.forEach(pair => {
+        switch(pair.from) {
+          case 'old': {
+            this.data[pair.value[0]][pair.value[1]].cycle = []
+          } break;
+          case 'new': {
+            this.data[pair.value[0]][pair.value[1]].cycle = new_cycle
+          } break;
+        }
+      })
+    }
+
     // a lot of stuff needs to be recalculated
     // loop through every cell mentioned in the changes array and recursively descend from there and update all of their values;
     // as elements "higher up" in the tree are being used by ones lower in the tree the higher up ones need to have been evaluated
@@ -324,11 +352,14 @@ export default class Spreadsheet extends Component<IProps, IState> {
 
       const maybe_err = check_errors(cell)
       if(maybe_err !== undefined) cell.err = maybe_err
-      // TODO: can this handle circular datastructures properly? apparently not.
+      
       cell.changes.map(([row, col]) => recurse(this.data[row][col], self))
 
     }
-    this.data[row][col].changes.map(([row, col]) => recurse(this.data[row][col], generate_id_format(cell._id)))
+
+    this.data[row][col].changes
+      .filter(cell_id => !this.data[row][col].cycle.find(cell_id_cycle => compare_cell_ids(cell_id, cell_id_cycle)))
+      .map(([row, col]) => recurse(this.data[row][col], generate_id_format(cell._id)))
 
     this.update(cell._id)
   }

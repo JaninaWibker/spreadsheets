@@ -2,7 +2,7 @@ import { generate_id_format } from './cell_id'
 import { lookup, destructure, default_value, is_formula, parse_formula, cell_to_json_replacer, compare_cell_ids } from './helpers'
 import type { Cell, CellId } from '../types/Spreadsheet'
 import { CellType } from '../types/CellTypes'
-import { get_cycles } from '../util/cycle_detection'
+import { get_cycles, find_cycle_starting_from_node } from '../util/cycle_detection'
 
 type LibType = any // TODO: can this be specified **a little bit** further without making requirements for what the standard library actually is (it is purposefully injected and not imported to be environment agnostic; using object or { [key: string]: any } does not work, it being a mapping from strings to either functions or numbers is what the type should describe)
 
@@ -145,6 +145,26 @@ const compute_nodes_and_edges = (data: Cell[][]) => {
   return { nodes, edges}
 }
 
+const check_circular_for_cell = (data: Cell[][], cell: Cell): Cell[][] | null => {
+
+  const { edges } = compute_nodes_and_edges(data)
+
+  const node_num = cell._id[0] * data[cell._id[0]].length + cell._id[1]
+
+  const cycle = find_cycle_starting_from_node(edges, node_num)
+
+  // this makes the assumption that every row has the same number of cells. This is basically a given but
+  // still something that MAY need to be considered some time in the future. This also assumes that at
+  // least one row exists but this is also given because otherwise no single cell would be able to exist
+  const actual_ids = cycle.map(id => [Math.floor(id / data[0].length), id % data[0].length]) as CellId[]
+
+  actual_ids.forEach(([row, col]) => {
+    const cell = data[row][col]
+    cell.cycle = actual_ids
+  })
+
+  return data
+}
 
 const check_circular = (data: Cell[][]): Cell[][] => {
 
@@ -199,6 +219,7 @@ export default {
   descend,
   transform,
   check_errors,
+  check_circular_for_cell,
 }
 
 export {
@@ -208,4 +229,5 @@ export {
   descend,
   transform,
   check_errors,
+  check_circular_for_cell,
 }

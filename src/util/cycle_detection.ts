@@ -53,7 +53,7 @@ const tarjans_algorithm = <Node>(nodes: Node[], edges: Edges): { lowlink: number
 
 const find_cycle_starting_from_node = (edges: Edges, node: number, prev = node, target = node, first_call = true): number[] => {
   if(node === target && !first_call) return [prev]
-  const rest = edges[node].flatMap(to => find_cycle_starting_from_node(edges, to, node, target, false))
+  const rest = edges[node].flatMap(to => to === node ? [to] : find_cycle_starting_from_node(edges, to, node, target, false))
   return first_call || rest.length === 0 ? rest : [prev, ...rest]
 }
 
