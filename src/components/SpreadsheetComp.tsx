@@ -232,23 +232,23 @@ export default class Spreadsheet extends Component<IProps, IState> {
     // TODO: why is this.data[row][col] used and not just cell? Is cell just a copy?
 
     // used to compute which cells need to have their changes array updated
-    const old_refs = this.data[row][col].refs
-    const old_cycle = [...this.data[row][col].cycle]
+    const old_refs = cell.refs
+    const old_cycle = [...cell.cycle]
 
-    this.data[row][col].err = undefined // resetting error; if it still exists it's going to get recomputed
-    this.data[row][col].cycle = []
+    cell.err = undefined // resetting error; if it still exists it's going to get recomputed
+    cell.cycle = []
 
     // if formula then assign new value to .vl and compute .fn
     if(value.startsWith('=')) {
       const {fn, refs} = parse_formula(value.substring(1))!
-      this.data[row][col].vl = value
-      this.data[row][col].fn = fn
-      this.data[row][col].refs = refs
+      cell.vl = value
+      cell.fn = fn
+      cell.refs = refs
     } else {
-      if(this.data[row][col].tp === CellType.NUMBER) {
+      if(cell.tp === CellType.NUMBER) {
         const parsed_value = parseFloat(value)
         if(isNaN(parsed_value)) {
-          console.log(this.data[row][col])
+          console.log(cell)
           // TODO: what should happen here? this is what gets run if the value that is inputted is not a
           // TODO: number, but should the error be generated here or somewhere else; considering that no
           // TODO: other input is ever somehow flagged as invalid (you can perfectly well place strings
@@ -256,18 +256,18 @@ export default class Spreadsheet extends Component<IProps, IState> {
           // TODO: should be stronger safe-guards against this and errors should be displayed using the
           // TODO: same mechanism rendered markdown is displayed. This means that everything tagged as a
           // TODO: number should display an error if the content of the cell is not interpretable as a number.
-          this.data[row][col].err = new Error("#NaN")
+          cell.err = new Error("#NaN")
         } else {
           // nothing has changed (had to parse to a number first to check this)
           if(parsed_value === cell.vl) return
-          this.data[row][col].vl = parsed_value
+          cell.vl = parsed_value
         }
-      } else if(this.data[row][col].tp === CellType.STRING) {
-        this.data[row][col].vl = value
+      } else if(cell.tp === CellType.STRING) {
+        cell.vl = value
       }
     }
 
-    console.log('value changed', this.data[row][col])
+    console.log('value changed', cell)
 
     // when updating a cell the data structure becomes somewhat invalid:
     // each cell has a refs array and a changes array. The only thing that
@@ -279,11 +279,11 @@ export default class Spreadsheet extends Component<IProps, IState> {
     // code has to be written. The most complex thing is probably finding out
     // which cells need to have their changes array updated.
 
-    this.data[row][col].refs = this.data[row][col].refs.map(ref => typeof(ref) === 'string' ? lookup(ref, IDENTIFIER_CELLS) : ref) as CellId[]
-    if(this.data[row][col].refs.find(ref => ref[0] === this.data[row][col].row && ref[1] === this.data[row][col].col)) {
-      this.data[row][col].err = new Error("self-references not allowed")
+    cell.refs = cell.refs.map(ref => typeof(ref) === 'string' ? lookup(ref, IDENTIFIER_CELLS) : ref) as CellId[]
+    if(cell.refs.find(ref => ref[0] === row && ref[1] === col)) {
+      cell.err = new Error("self-references not allowed")
     } else {
-      const new_refs = this.data[row][col].refs
+      const new_refs = cell.refs
       const arr = compute_additions_and_deletions(new_refs, old_refs)
 
       // from === 'old' -> deletion
@@ -306,7 +306,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
 
     check_circular_for_cell(this.data, cell)
 
-    const new_cycle = this.data[row][col].cycle
+    const new_cycle = cell.cycle
 
     if(new_cycle.length > 0 || old_cycle.length > 0) {
       // changes that need to be performed on all involved cells
@@ -371,7 +371,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
     let content
     if(cell.err) {
       content = cell.err.message
-    } else if(cell.cycle.length === 1) {
+    } else if(cell.cycle.length === 1 || cell.refs.find(cell_id => compare_cell_ids(cell._id, cell_id))) {
       content = '#Self reference'
     } else if(cell.cycle.length > 0) {
       content = '#Circular references'
