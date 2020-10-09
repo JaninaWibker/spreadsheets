@@ -2,11 +2,18 @@
 
 Spreadsheets is a small simple (**WIP**) spreadsheet application web app thingy.
 
-![Basic functionality demo gif](./spreadsheets-demo-2.gif)
-<center style="color: dark-grey; font-size: 12px">Basic functionality</center>
+<p align="center">
+  <img src="./spreadsheets-demo-2.gif" alt="Basic functionality demo gif" />
+  <strong>Basic functionality</strong>
+  <br />
+</p>
 
-![Error handling demo gif](./spreadsheets-demo-error-handling.gif)
-<center style="color: dark-grey; font-size: 12px">Error handling</center>
+<p align="center">
+  <img src="./spreadsheets-demo-error-handling.gif" alt="Error handling demo gif" />
+  <strong>Error handling</strong>
+  <br />
+</p>
+
 
 ## Features
 
