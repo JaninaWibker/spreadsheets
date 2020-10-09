@@ -240,12 +240,17 @@ export default class Spreadsheet extends Component<IProps, IState> {
 
     // if formula then assign new value to .vl and compute .fn
     if(value.startsWith('=')) {
-      const {fn, refs} = parse_formula(value.substring(1))!
+      const {fn, refs: raw_refs} = parse_formula(value.substring(1))!
       cell.vl = value
       cell.fn = fn
-      cell.refs = refs
+      cell.refs = raw_refs.map(ref => typeof ref === 'string' ? lookup(ref, IDENTIFIER_CELLS) : ref) as CellId[]
     } else {
       if(cell.tp === CellType.NUMBER) {
+        cell.fn = undefined
+        cell.refs = []
+        cell.err = undefined
+        cell.changes = cell.changes.filter(cell_id => !compare_cell_ids(cell._id, cell_id)) // incase of self reference remove entry from changes array
+        // don't reset cycle just yet, this would mean also recomputing the changes array for other cells; this is already done further down the chain
         const parsed_value = parseFloat(value)
         if(isNaN(parsed_value)) {
           console.log(cell)
@@ -279,30 +284,25 @@ export default class Spreadsheet extends Component<IProps, IState> {
     // code has to be written. The most complex thing is probably finding out
     // which cells need to have their changes array updated.
 
-    cell.refs = cell.refs.map(ref => typeof(ref) === 'string' ? lookup(ref, IDENTIFIER_CELLS) : ref) as CellId[]
-    if(cell.refs.find(ref => ref[0] === row && ref[1] === col)) {
-      cell.err = new Error("self-references not allowed")
-    } else {
-      const new_refs = cell.refs
-      const arr = compute_additions_and_deletions(new_refs, old_refs)
+    const new_refs = cell.refs
+    const arr = compute_additions_and_deletions(new_refs, old_refs)
 
-      // from === 'old' -> deletion
-      // from === 'new' -> addition
-      arr.forEach(pair => {
-        switch(pair.from) {
-          case 'old': {
-            this.data[pair.value[0]][pair.value[1]].changes = this.data[pair.value[0]][pair.value[1]].changes.filter(ref =>
-              ref[0] !== cell.row || ref[1] !== cell.col
-            )
-            console.log('in cell ' + generate_id_format(pair.value) + ' remove ' + generate_id_format(cell._id) + ' from changes')
-          } break;
-          case 'new': {
-            this.data[pair.value[0]][pair.value[1]].changes.push(cell._id)
-            console.log('in cell ' + generate_id_format(pair.value) + ' add ' + generate_id_format(cell._id) + ' to changes')
-          } break;
-        }
-      })
-    }
+    // from === 'old' -> deletion
+    // from === 'new' -> addition
+    arr.forEach(pair => {
+      switch(pair.from) {
+        case 'old': {
+          this.data[pair.value[0]][pair.value[1]].changes = this.data[pair.value[0]][pair.value[1]].changes.filter(ref =>
+            ref[0] !== cell.row || ref[1] !== cell.col
+          )
+          console.log('in cell ' + generate_id_format(pair.value) + ' remove ' + generate_id_format(cell._id) + ' from changes')
+        } break;
+        case 'new': {
+          this.data[pair.value[0]][pair.value[1]].changes.push(cell._id)
+          console.log('in cell ' + generate_id_format(pair.value) + ' add ' + generate_id_format(cell._id) + ' to changes')
+        } break;
+      }
+    })
 
     check_circular_for_cell(this.data, cell)
 
@@ -344,6 +344,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
       // console.assert(is_formula(cell), cell)
 
       try {
+        cell.err = undefined // TODO: does this cause any unwanted side effects that im not aware of?
         cell._vl = cell.fn!((cell_id: string) => (this.g(cell_id, cell._id, false, this.data[row][col]._id)), lib)
         console.log(generate_id_format(cell._id) + ' updated to ' + cell._vl)
       } catch(err) {
@@ -353,7 +354,9 @@ export default class Spreadsheet extends Component<IProps, IState> {
       const maybe_err = check_errors(cell)
       if(maybe_err !== undefined) cell.err = maybe_err
       
-      cell.changes.map(([row, col]) => recurse(this.data[row][col], self))
+      cell.changes
+        .filter(cell_id => !cell.cycle.find(cell_id_cycle => compare_cell_ids(cell_id, cell_id_cycle)))
+        .map(([row, col]) => recurse(this.data[row][col], self))
 
     }
 

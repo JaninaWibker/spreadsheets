@@ -4,65 +4,99 @@ import type { Cell, CellId } from '../types/Spreadsheet'
 import { CellType } from '../types/CellTypes'
 import { get_cycles, find_cycle_starting_from_node } from '../util/cycle_detection'
 
+class CircularReferenceError extends Error {  }
+class TransitiveError extends Error {  }
+
 type LibType = any // TODO: can this be specified **a little bit** further without making requirements for what the standard library actually is (it is purposefully injected and not imported to be environment agnostic; using object or { [key: string]: any } does not work, it being a mapping from strings to either functions or numbers is what the type should describe)
 
-export type getCellCurried = (target: string, call_cell: CellId, byRender: boolean | undefined, rec_call_cell: CellId) => string | number | undefined
+export type getCellCurried = (target: string, call_cell: CellId, byRender: boolean | undefined, rec_call_cell: CellId) => string | number
 export type getCell = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId; }) => getCellCurried
 
 // target is the cell for which the value should be returned
 // call_cell is the cell that initiated the whole recursive descend
 // byRender skips a check for circular calls as the caller (usually identified by call_cell) is not an actual cell but the renderer
 // rec_call_cell is the direct caller; meaning the target of the call one stack frame lower on the call stack
-const get_cell = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId }) => (target: string, call_cell: CellId, byRender=false, rec_call_cell: CellId) => {
-  // console.log(cell, call_cell, byRender, rec_call_cell)
+const get_cell = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId }) => {
 
-  const pair = lookup(target, identifier_cells)
+  const inner_get_cell_raw = (target: string, call_cell: CellId, byRender=false, rec_call_cell: CellId): string | number => {
+    // console.log(cell, call_cell, byRender, rec_call_cell)
 
-  if(!pair) {
-    throw Error('not a valid Cell (named cell not defined or mistakenly identified as identifier (if this is what happened, you probably have an error in your selector))')
-  }
+    const pair = lookup(target, identifier_cells)
 
-  const [c_row, c_col] = pair
-  const cell = data[c_row][c_col]
-
-  const [rc_row, rc_col] = rec_call_cell
-  const rcc = data[rc_row][rc_col]
-
-  if(cell === undefined) {
-    console.log(target, call_cell, cell)
-    return '<error>' // TODO: ???: shouldn't this be done somewhat better
-  }
-
-  if(cell.tp === CellType.EMPTY) return ''
-  if(cell.tp === CellType.NUMBER || cell.tp === CellType.STRING) {
-
-    // add 'changes'-array to the current cell including the caller of g (the previous function in the callstack, (and the cell of this function))
-    // if the array does exist already, the id of the cell is just pushed to it
-    if(c_row !== rc_row || c_col !== rc_col) {
-      console.log('caller', rcc, 'current', cell)
-      console.log(destructure(rcc, ['id', 'changes', 'visited']), destructure(cell, ['id', 'changes', 'visited']))
+    if(!pair) {
+      throw Error('not a valid Cell (named cell not defined or mistakenly identified as identifier (if this is what happened, you probably have an error in your selector))')
     }
 
-    if(!cell.fn) return cell.vl
-    if(cell.cycle.length > 0) return undefined // TODO: should probably do this a bit different but i don't really know how atm
-    if(cell.err !== undefined) return undefined // cell.err // TODO: should probably return the real error here
-    if(cell.fn) {
-      // if already calculated then add visited = true, else check if it is a circular call and if it is
-      // return the default value for this data type, else calculate the value by executing the function
-      if(cell.visited === false) {
-        if(c_row !== call_cell[0] || c_col !== call_cell[1] || byRender) {
-          console.log(cell.id, rcc.id)
-          cell._vl = cell.fn((id: string) => get_cell(lib, data, identifier_cells)(id, call_cell, false, cell._id), lib) // TODO: this might need to change when `g` changes
-        } else {
-          cell._vl = cell.vl || default_value(cell.tp)
-        }
+    const [c_row, c_col] = pair
+    const cell = data[c_row][c_col]
+
+    const [rc_row, rc_col] = rec_call_cell
+    const rcc = data[rc_row][rc_col]
+
+    if(cell === undefined) {
+      console.log(target, call_cell, cell)
+      throw new Error('#Cell not found') // TODO: ???: shouldn't this be done somewhat better
+    }
+
+    if(cell.tp === CellType.EMPTY) return ''
+    if(cell.tp === CellType.NUMBER || cell.tp === CellType.STRING) {
+
+      // add 'changes'-array to the current cell including the caller of g (the previous function in the callstack, (and the cell of this function))
+      // if the array does exist already, the id of the cell is just pushed to it
+      if(c_row !== rc_row || c_col !== rc_col) {
+        console.log('caller', rcc, 'current', cell)
+        console.log(destructure(rcc, ['id', 'changes', 'visited']), destructure(cell, ['id', 'changes', 'visited']))
       }
 
-      cell.visited = true
+      if(cell.cycle.length > 0) throw new CircularReferenceError('#Circular reference')
+      if(cell.err !== undefined && cell.err instanceof TransitiveError) cell.err = undefined // ignore transitive errors // TODO: correct?
+      if(cell.err !== undefined) throw cell.err
+      if(cell.fn) {
+        // if already calculated then add visited = true, else check if it is a circular call and if it is
+        // return the default value for this data type, else calculate the value by executing the function
+        if(cell.visited === false) {
+          if(c_row !== call_cell[0] || c_col !== call_cell[1] || byRender) {
+            console.log(cell.id, rcc.id)
+            try {
+              cell._vl = cell.fn((id: string) => inner_get_cell_raw(id, call_cell, false, cell._id), lib) // TODO: this might need to change when `g` changes
+            } catch(err) {
+              console.log('error was thrown')
+              cell.err = new TransitiveError('#Transitive error')
+              throw err
+            }
+          } else {
+            cell._vl = cell.vl || default_value(cell.tp)
+          }
+        }
 
-      return cell._vl
+        cell.visited = true
+
+        return cell._vl
+      } else { // if(!cell.fn) { ... }
+        return cell.vl
+      }
+    } else return cell.vl
+  }
+  
+  
+  return (target: string, call_cell: CellId, byRender=false, rec_call_cell: CellId): string | number => {
+    try {
+      return inner_get_cell_raw(target, call_cell, byRender, rec_call_cell)
+    } catch(err) {
+      const [row, col] = lookup(target, identifier_cells) as CellId
+      const cell = data[row][col]
+      if(err instanceof CircularReferenceError && cell.cycle.length > 0) {
+        // don't modify cell.err in any way because circular errors are already handled via the cycle array
+        const source_str = generate_id_format(call_cell)
+        const target_str = generate_id_format(lookup(target, identifier_cells) as CellId)
+        if(source_str !== target_str) console.log(`caught circular reference error (${source_str} queried ${target_str})`)
+        return 0 // TODO: probably should return something else here
+      } else {
+        cell.err = new Error('#Transitive error')
+        return 0 // TODO: probably should return something else here
+      }
     }
-  } else return cell.vl
+  }
 }
 
 const recurse = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId }, cell: Cell, origin_cell: CellId) => {
@@ -87,6 +121,7 @@ const recurse = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]
   })
   if(cell.fn && cell.cycle.length === 0) {
     cell._vl = cell.fn((cell_id: string) => (get_cell(lib, data, identifier_cells)(cell_id, cell._id, false, origin_cell)), lib)
+    
     console.log('calculated value for cell ' + generate_id_format(cell._id) + ' (' + cell._vl + ')')
     const maybe_err = check_errors(cell)
     if(maybe_err !== undefined) cell.err = maybe_err
@@ -99,7 +134,9 @@ const parse_formulas = (identifier_cells: { [key: string]: CellId }, cell: Cell)
     identifier_cells[cell.name] = cell._id
   }
 
-  const {fn, refs} = (is_formula(cell) && parse_formula((cell.vl as string).substring(1))) || { fn: undefined, refs: [] }
+  const {fn, refs: raw_refs} = (is_formula(cell) && parse_formula((cell.vl as string).substring(1))) || { fn: undefined, refs: [] }
+
+  const refs = raw_refs.map(ref => typeof(ref) === 'string' ? lookup(ref, identifier_cells) : ref) as CellId[]
 
   return { ...cell, fn, refs }
 }

@@ -17,9 +17,9 @@ type rawData = {
 const parse_options = (str: string): rawOptions => (str
     .split('\n')
     .filter((line: string) => !!line)
-    .map((line: string) => line.split(':'))
-    .reduce((acc: any, curr: string[]) => {
-      acc[curr[0].trim()] = curr[1].trim()
+    .map((line: string) => line.split(':') as [string, string])
+    .reduce((acc: { [key: string]: string }, [key, value]: [string, string]) => {
+      acc[key.trim()] = value.trim()
       return acc
     }, {})) as rawOptions
 
