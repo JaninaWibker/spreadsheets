@@ -3,13 +3,17 @@ import '../css/spreadsheet.css'
 
 import { BorderCell, Cell as NormalCell } from './Cell'
 import Selection from './Selection'
+import ContextMenu from './ContextMenu'
 import { range, format_data, scroll_into_view_if_needed, parse_formula, lookup, compute_additions_and_deletions, compare_cell_ids } from '../util/helpers'
 import { generate_col_id_format, generate_id_format } from '../util/cell_id'
 import { get_cell, transform, check_errors, check_circular_for_cell } from '../util/cell_transform'
 import type { getCellCurried } from '../util/cell_transform'
 import { CellType } from '../types/CellTypes'
 import type { Cell, CellId, SpreadsheetOptions } from '../types/Spreadsheet'
+import type { AdvancedEntry, Entry } from '../types/ContextMenu'
 import platform_detection from '../util/platform-detection'
+
+import { Clipboard, Copy, Delete, Scissors, Type, Play } from '../icons/index'
 
 import lib from '../util/stdlib'
 
@@ -28,6 +32,8 @@ document.documentElement.style.setProperty('--border-cell-width-px', BORDER_CELL
 document.documentElement.style.setProperty('--border-cell-height-px', BORDER_CELL_HEIGHT + 'px');
 
 const IDENTIFIER_CELLS: { [key: string]: CellId } = {}
+
+type Modifiers = { shift: boolean, alt: boolean, meta: boolean, ctrl: boolean }
 
 interface IProps {
   data: Cell[][],
@@ -54,7 +60,9 @@ interface IState {
   dimensions: {
     x: number,
     y: number
-  }
+  },
+  context_menu_entries: Entry[],
+  context_menu_ref: EventTarget | null
 }
 
 export default class Spreadsheet extends Component<IProps, IState> {
@@ -90,7 +98,9 @@ export default class Spreadsheet extends Component<IProps, IState> {
       dimensions: {
         x: this.data[0].length,
         y: this.data.length
-      }
+      },
+      context_menu_entries: [],
+      context_menu_ref: null
     }
   }
 
@@ -127,19 +137,68 @@ export default class Spreadsheet extends Component<IProps, IState> {
     this.forceUpdate()
   }
 
-  handleMouseSelection = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, id: string) => {
+  openContextMenu = (ref: HTMLElement | null, menu: Entry[]) => {
+    console.log('opening context menu')
+    this.setState({
+      context_menu_entries: menu,
+      context_menu_ref: ref
+    })
+  }
+
+  closeContextMenu = () => {
+    console.log('closing context menu')
+    this.setState({
+      context_menu_entries: [],
+      context_menu_ref: null
+    })
+  }
+
+  handleCellMouseEvents = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, id: string) => {
     const [row_str, col_str] = id.split('.')
     const row = parseInt(row_str, 10)
     const col = parseInt(col_str, 10)
     const whole_row = col_str === '_' // if column is unspecified it means whole row
     const whole_col = row_str === '_' // if row is unspecified it means whole column
 
-    const modifiers = (({ shiftKey, altKey, metaKey, ctrlKey }) => ({
+    const modifiers: Modifiers = (({ shiftKey, altKey, metaKey, ctrlKey }) => ({
       shift: shiftKey, alt: altKey, meta: metaKey, ctrl: ctrlKey
     }))(e)
 
+    const fake_event = { type: e.type, buttons: e.buttons, button: e.button, modifiers: modifiers, preventDefault: e.preventDefault.bind(e), target: e.target }
+
+    switch(e.type) {
+      case 'mousedown':
+      case 'mouseup':
+      case 'mouseenter': return this.handleMouseSelection(fake_event, [row, col], [whole_row, whole_col])
+      case 'contextmenu': return this.handleMouseContextMenu(fake_event, [row, col], [whole_row, whole_col])
+    }
+  }
+
+  handleMouseContextMenu = (e: { type: string, buttons: number, button: number, modifiers: Modifiers, preventDefault: () => void, target: EventTarget }, [row, col]: CellId, [whole_row, whole_col]: [boolean, boolean]) => {
+    if(whole_row || whole_col) return
+
+    e.preventDefault()
+
+    this.setState({ context_menu_ref: e.target })
+
+    const menu = [
+      { key: 'copy',      submenu: false, simple: true, name: 'Copy',       action: () => console.log('copy'),  shortcut: ['mod', 'c'], icon: <Copy /> },
+      { key: 'paste',     submenu: false, simple: true, name: 'Paste',      action: () => console.log('paste'), shortcut: ['mod', 'v'], icon: <Clipboard /> },
+      { key: 'cut',       submenu: false, simple: true, name: 'Cut',        action: () => console.log('cut'),   shortcut: ['mod', 'x'], icon: <Scissors /> },
+      { key: 'clear',     submenu: false, simple: true, name: 'Clear cell', action: () => console.log('clear'), shortcut: ['backspace'], icon: <Delete /> },
+    ]
+
+    this.openContextMenu(e.target as HTMLElement, menu)
+
+    console.log(e, [row, col], [whole_row, whole_col])
+  }
+
+  handleMouseSelection = (e: { type: string, buttons: number, button: number, modifiers: Modifiers, preventDefault: () => void, target: EventTarget }, [row, col]: CellId, [whole_row, whole_col]: [boolean, boolean]) => {
+
+    if(e.buttons === 2 || e.button === 2) return // block right-clicking
+    
     if(e.type === 'mousedown') { // start dragging OR shift-clicking
-      if(modifiers.shift) {
+      if(e.modifiers.shift) {
         this.setState({ selection: {
           start_x:  this.state.selection.start_x,
           start_y:  this.state.selection.start_y,
@@ -169,7 +228,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
         end_y:    row,
       }})
     } else if(e.type === 'click') { // clicking on border cell
-      if(modifiers.shift) { // enlarge selection (using start of selection)
+      if(e.modifiers.shift) { // enlarge selection (using start of selection)
         this.setState({ selection: {
           start_x: whole_row ? 0 : this.state.selection.start_x,
           start_y: whole_col ? 0 : this.state.selection.start_y,
@@ -392,7 +451,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
         editable={cell.tp === CellType.NUMBER || cell.tp === CellType.STRING}
         style={cell.style ? cell.style : {}}
         onValueChange={this.handleCellChange.bind(this, cell)}
-        onMouseEvent={this.handleMouseSelection}
+        onMouseEvent={this.handleCellMouseEvents}
         onArrowKeyEvent={this.handleKeypress}
         raw_data={cell.fn ? cell.vl : v}
         tp={cell.tp}
@@ -412,15 +471,15 @@ export default class Spreadsheet extends Component<IProps, IState> {
         <table className="table">
           <tbody>
             <tr id={'r0l'} key={'r0l'}>
-              <BorderCell key={'_._'} id={'_._'} className="" onMouseEvent={this.handleMouseSelection} content="/" />
-              {/* <th className="border border-left-top" id={'_._'} key={'_._'} onClick={e => this.handleMouseSelection(e, '_._')}><div><span>{'/'}</span></div></th> */}
+              <BorderCell key={'_._'} id={'_._'} className="" onMouseEvent={this.handleCellMouseEvents} content="/" />
+              {/* <th className="border border-left-top" id={'_._'} key={'_._'} onClick={e => this.handleCellMouseEvents(e, '_._')}><div><span>{'/'}</span></div></th> */}
               {range(this.columns).map(col_num =>
-                  <BorderCell key={'_.' + col_num} id={'_.' + col_num} className="border-top" content={generate_col_id_format(col_num)} onMouseEvent={this.handleMouseSelection} />
+                  <BorderCell key={'_.' + col_num} id={'_.' + col_num} className="border-top" content={generate_col_id_format(col_num)} onMouseEvent={this.handleCellMouseEvents} />
               )}
             </tr>
             {range(this.rows).map(row_num =>
               <tr id={'r' + row_num} key={'r' + row_num}>
-                <BorderCell key={row_num + '._'} id={row_num + '._'} className="border-left" content={String(row_num+1)} onMouseEvent={this.handleMouseSelection} />
+                <BorderCell key={row_num + '._'} id={row_num + '._'} className="border-left" content={String(row_num+1)} onMouseEvent={this.handleCellMouseEvents} />
                 {range(this.columns).map(col_num => this.render_cell(this.data[row_num][col_num]))}
               </tr>
             )}
@@ -433,6 +492,10 @@ export default class Spreadsheet extends Component<IProps, IState> {
             cell_width:       CELL_WIDTH,       cell_height:       CELL_HEIGHT,
             index_cell_width: BORDER_CELL_WIDTH, index_cell_height: BORDER_CELL_HEIGHT}}
         />
+        {this.state.context_menu_ref
+          ? <ContextMenu referenceElement={this.state.context_menu_ref} close={this.closeContextMenu} menu={this.state.context_menu_entries} />
+          : null
+        }
       </div>
     )
   }
