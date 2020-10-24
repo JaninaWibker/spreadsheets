@@ -1,0 +1,68 @@
+.keyboard-shortcut.not-simple {
+  margin-left: 4px;
+  margin-right: 4px;
+  line-height: 10px;
+  white-space: nowrap;
+}
+
+.keyboard-shortcut.not-simple:first-child {
+  margin-left: 0px;
+}
+
+.keyboard-shortcut.not-simple:last-child {
+  margin-right: 0px;
+}
+
+.keyboard-shortcut-key.not-simple {
+  display: inline-block;
+  border-radius: 3px;
+  vertical-align: middle;
+  font-size: 11px;
+  padding: 3px 5px;
+  margin: 0 2px;
+}
+
+.keyboard-shortcut-key.not-simple.light {
+  color: #555;
+  background-color: hsla(0,0%,87%,.4);
+  border: 1px solid hsla(0,0%,80%,.4);
+  border-bottom-color: hsla(0,0%,73%,.4);
+  box-shadow: inset 0 -1px 0 hsla(0,0%,73%,.4);
+}
+
+.keyboard-shortcut-key.not-simple.dark {
+  color: #ccc;
+  background-color: hsla(0,0%,50%,.17);
+  border: 1px solid rgba(51,51,51,.6);
+  border-bottom-color: rgba(68,68,68,.6);
+  box-shadow: inset 0 -1px 0 rgba(68,68,68,.6);
+}
+
+
+.keyboard-shortcut.simple {
+  line-height: 10px;
+  white-space: nowrap;
+}
+
+.keyboard-shortcut.simple:first-child {
+  margin-left: 0px;
+}
+
+.keyboard-shortcut.simple:last-child {
+  margin-right: 0px;
+}
+
+.keyboard-shortcut-key.simple {
+  display: inline-block;
+  vertical-align: middle;
+  font-size: 13px;
+  margin: 0 1px;
+}
+
+.keyboard-shortcut-key.simple.light {
+  color: #555;
+}
+
+.keyboard-shortcut-key.simple.dark {
+  color: #ccc;
+}

@@ -32,6 +32,7 @@ const BorderCell = ({id, content, className, onMouseEvent}: BorderCellProps) => 
   <th
     className={'border-cell border' + (className ? ' ' + className : '')}
     onClick={e => onMouseEvent ? onMouseEvent(e, id) : null}
+    onContextMenu={e => onMouseEvent ? onMouseEvent(e, id) : null}
     id={id}>
       <div>
         <span>{content}</span>
@@ -45,6 +46,7 @@ const Cell = ({id, content, style, editable=false, onValueChange, onMouseEvent, 
       onMouseDown={e => onMouseEvent ? onMouseEvent(e, id) : null}
       onMouseUp={e => onMouseEvent ? onMouseEvent(e, id) : null}
       onMouseEnter={e => onMouseEvent ? onMouseEvent(e, id) : null}
+      onContextMenu={e => onMouseEvent ? onMouseEvent(e, id) : null}
       style={style}>
         {!editable
           ? <span>{String(content)}</span>
