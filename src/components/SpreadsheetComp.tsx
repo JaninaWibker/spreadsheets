@@ -3,7 +3,7 @@ import '../css/spreadsheet.css'
 
 import { BorderCell, Cell as NormalCell } from './Cell'
 import Selection from './Selection'
-import ContextMenu from './ContextMenu'
+import ContextMenu, { ColorPickerMenuEntry } from './ContextMenu'
 import { range, format_data, scroll_into_view_if_needed, parse_formula, lookup, compute_additions_and_deletions, compare_cell_ids, is_inside_selection } from '../util/helpers'
 import { generate_col_id_format, generate_id_format } from '../util/cell_id'
 import { get_cell, transform, check_errors, check_circular_for_cell } from '../util/cell_transform'
@@ -255,6 +255,17 @@ export default class Spreadsheet extends Component<IProps, IState> {
   private handleMouseContextMenu = (e: { type: string, buttons: number, button: number, modifiers: Modifiers, preventDefault: () => void, target: EventTarget }, [row, col]: CellId, [whole_row, whole_col]: [boolean, boolean]) => {
     if(whole_row || whole_col) return
 
+    const cell = this.data[row][col]
+
+    let cell_type_icons = [<div />, <div />, <div />]
+
+    switch(cell.tp) {
+      case CellType.NUMBER: cell_type_icons[0] = <Check />; break;
+      case CellType.STRING: cell_type_icons[1] = <Check />; break;
+      case CellType.EMPTY:  cell_type_icons[2] = <Check />; break;
+      default: throw new Error('forgot to add new cell type to switch statement')
+    }
+
     e.preventDefault()
 
     this.setState({ context_menu_ref: e.target })
@@ -287,6 +298,13 @@ export default class Spreadsheet extends Component<IProps, IState> {
         { key: 'string', submenu: false,  simple: true, name: 'String', action: () => this.onChangeCellType(CellType.STRING, cells), icon: cell_type_icons[1]},
         { key: 'empty',  submenu: false,  simple: true, name: 'Empty',  action: () => this.onChangeCellType(CellType.EMPTY,  cells), icon: cell_type_icons[2]},
       ], expand_icon: <Play fill={true} /> },
+      { key: 'text-color',        submenu: true, simple: false, component: (entry: AdvancedEntry, close: () => void, register_submenu: (submenu: { is_open: boolean, close: () => void }) => number, notify_open_submenu: (idx: number, is_open: boolean) => void) =>
+          <ColorPickerMenuEntry text="Text color" key={entry.key} color={undefined} cb={color => this.onChangeCellTextColor(cells, color)} close={close} register_submenu={register_submenu} notify_open_submenu={notify_open_submenu} />
+      },
+      { key: 'background-color',  submenu: true, simple: false, component: (entry: AdvancedEntry, close: () => void, register_submenu: (submenu: { is_open: boolean, close: () => void }) => number, notify_open_submenu: (idx: number, is_open: boolean) => void) =>
+          <ColorPickerMenuEntry text="Background color" key={entry.key} color={undefined} cb={color => this.onChangeCellBackgroundColor(cells, color)} close={close} register_submenu={register_submenu} notify_open_submenu={notify_open_submenu} />
+      },
+      { key: 'name',  submenu: false, simple: true, name: 'Set name', icon: <Type /> },
     ]
 
     this.openContextMenu(e.target as HTMLElement, menu)

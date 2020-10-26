@@ -13,3 +13,5 @@ what is still left to do:
 - [ ] manage cell focus better
 - [ ] improve error reporting inside transpiled (formula) code
 - [ ] add boolean value cell type and maybe date type (this could be a subtype of string to be honest. This means that instead of `number | string` being accepted everywhere it would need to be `number | string | boolean | Date`)
+- [ ] add background and text colors (save via style object?)
+- [ ] create a rightclick menu

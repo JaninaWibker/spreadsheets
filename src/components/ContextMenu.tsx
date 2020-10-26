@@ -3,10 +3,15 @@ import type { AdvancedEntry, AdvancedSubmenuEntry, Entry, SimpleEntry, SimpleSub
 import KeyboardShortcutDisplay from './KeyboardShortcutDisplay'
 import Popover from './Popover'
 
+import type { ColorResult } from 'react-color'
+
 import '../css/contextmenu.css'
+import { ColorInputSmall } from './ColorInput'
+
 const renderEntry = (entry: Entry, close: () => void, register_submenu: (submenu: { is_open: boolean, close: () => void }) => number, open_submenu: (idx: number, is_open: boolean) => void) => entry.submenu
   ? entry.simple
     ? <SimpleSubmenu entry={entry as SimpleSubmenuEntry} close={close} register_submenu={register_submenu} notify_open_submenu={open_submenu} />
+    : <AdvancedSubmenu entry={entry as AdvancedSubmenuEntry} close={close} register_submenu={register_submenu} notify_open_submenu={open_submenu} />
   : entry.simple
     ? renderSimpleEntry(entry as SimpleEntry, close)
     : renderAdvancedEntry(entry as AdvancedEntry, close)
@@ -111,10 +116,59 @@ const SimpleSubmenu = ({ entry, close, register_submenu, notify_open_submenu }: 
     </div>
   )
 }
+
+const AdvancedSubmenu = ({ entry, close, register_submenu, notify_open_submenu }: { entry: AdvancedSubmenuEntry, close: () => void, register_submenu: (submenu: { is_open: boolean, close: () => void }) => number, notify_open_submenu: (idx: number, is_open: boolean) => void }) => entry.component(entry, close, register_submenu, notify_open_submenu)
+
 const renderAdvancedEntry = (entry: AdvancedEntry, close: () => void) => entry.component(entry, close)
+
+
+type ColorPickerEntryProps = {
+  key: string,
+  color: string | undefined,
+  text: string,
+  cb: (color: string | undefined) => void,
+  close: () => void,
+  register_submenu?: (menu: { is_open: boolean, close: () => void }) => number,
+  notify_open_submenu?: (idx: number, is_open: boolean) => void
+}
+
+const ColorPickerMenuEntry = ({ color=undefined, text="Color", cb, close, register_submenu=() => -1, notify_open_submenu=() => {} }: ColorPickerEntryProps) => {
+
+  const [current_color, state_set_color] = useState(color)
+  const list_item_ref = useRef(null)
+
+  let force_close = () => console.log('should close now')
+
+  const submenu_id = register_submenu({ is_open: false, close: () => force_close() })
+
+  const set_color = (color: ColorResult | string, valid: boolean) => {
+    const hex_color = !color || typeof(color) === 'string' ? color : color.hex
+    state_set_color(hex_color)
+    if(valid) {
+      cb(hex_color)
+    }
+  }
+
+  return (
+    <div className="contextmenu-entry-outer colorpicker" ref={list_item_ref}>
+      <div className="contextmenu-entry-inner">
+        <div className="text_wrapper"><div className="text">{text}</div></div>
+        <ColorInputSmall
+          onChange={set_color}
+          onOpenOrClose={(is_open: boolean) => notify_open_submenu(submenu_id, is_open)}
+          getForceClose={(close: () => void) => force_close = close}
+          error={false}
+          value={current_color}
+          default_value="transparent"
+          overrideReferenceElement={list_item_ref.current} />
+      </div>
+    </div>
+  )
+}
 
 export default ContextMenu
 
 export {
   ContextMenu,
+  ColorPickerMenuEntry,
 }

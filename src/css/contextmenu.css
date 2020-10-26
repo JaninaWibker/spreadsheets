@@ -85,3 +85,33 @@
   text-overflow: ellipsis;
 }
 
+.contextmenu-entry-outer.colorpicker .colorpicker-preview-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.contextmenu-entry-outer.colorpicker:hover {
+  background-color: #37352f0a;
+}
+
+.contextmenu-entry-outer .colorpicker-preview {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  border: 1px solid #ccc;
+}
+
+.contextmenu-entry-outer.colorpicker .colorpicker-preview-wrapper:hover .colorpicker-preview {
+  border-color: #444;
+}
+
+.contextmenu-entry-outer.colorpicker .colorpicker-preview-wrapper:focus {
+  outline: rgba(248,28,229,1) auto 1px;
+}
+
+.contextmenu-entry-outer.colorpicker .colorpicker-preview-wrapper:focus .colorpicker-preview {
+  border-color: rgba(248,28,229,1);
+}
