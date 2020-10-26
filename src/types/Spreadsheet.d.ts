@@ -1,6 +1,8 @@
 import { CellType, CellSubType } from './CellTypes'
 import type { LibType } from '../util/stdlib'
 
+import type { CSSProperties } from 'react'
+
 export type CellId = [number, number]
 
 export type CellEvaluateFn = (g: (id: string) => number | string | undefined, lib: LibType) => number | string
@@ -22,7 +24,7 @@ export type Cell = UnfinishedCell & {
   _id: CellId,
   col: number,
   row: number,
-  style?: object,
+  style?: CSSProperties,
   vl: number | string,
   _vl: number | string,
   err?: Error,

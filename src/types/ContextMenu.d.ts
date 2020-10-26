@@ -30,8 +30,12 @@ export type AdvancedSubmenuEntry = {
   key: string,
   simple: boolean,
   submenu: boolean,
-  menu: any,
-  component: (entry: AdvancedEntry, close: () => void) => JSX.Element,
+  component: (
+    entry: AdvancedSumenuEntry,
+    close: () => void,
+    register_submenu: (menu: { is_open: boolean, close: () => void}) => number,
+    notify_open_submenu: (idx: number, is_open: boolean) => void
+  ) => JSX.Element,
   shortcut?: string[]
 }
 

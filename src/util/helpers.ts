@@ -133,6 +133,15 @@ const compute_additions_and_deletions = (new_arr: CellId[], old_arr: CellId[]) =
   return arr
 }
 
+const is_inside_selection = (selection: { start_x: number, start_y: number, end_x: number, end_y: number}, [row, col]: CellId): boolean => {
+  const real_start_x = Math.min(selection.start_x, selection.end_x)
+  const real_start_y = Math.min(selection.start_y, selection.end_y)
+  const real_end_x =  Math.max(selection.start_x, selection.end_x)
+  const real_end_y = Math.max(selection.start_y, selection.end_y)
+
+  return row >= real_start_y && row <= real_end_y && col >= real_start_x && col <= real_end_x
+}
+
 export default {
   range,
   round,
@@ -150,6 +159,7 @@ export default {
   compare_cell_ids,
   compute_additions_and_deletions,
   cell_to_json_replacer,
+  is_inside_selection,
 }
 
 export {
@@ -169,4 +179,5 @@ export {
   compare_cell_ids,
   compute_additions_and_deletions,
   cell_to_json_replacer,
+  is_inside_selection,
 }

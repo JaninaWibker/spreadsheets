@@ -1,5 +1,5 @@
 import React, { Component, useState, useRef } from 'react'
-import { ChromePicker, ColorResult } from 'react-color'ä
+import { ChromePicker, ColorResult } from 'react-color'
 import Popover from './Popover'
 import { verify_color } from '../util/css-colors'
 
@@ -7,11 +7,13 @@ type ColorInputProps = {
   onChange?: (color: ColorResult | string, valid: boolean) => void
   error: boolean,
   value?: string,
-  default_value: string
+  default_value: string,
+  onOpenOrClose?: (is_open: boolean) => void,
+  getForceClose?: (close: () => void) => void
 }
 
 export type ColorInputSmallProps = ColorInputProps & {
-
+  overrideReferenceElement?: any
 }
 
 export type ColorInputLargeProps = ColorInputProps & {
@@ -33,6 +35,8 @@ class ColorInput<Props extends ColorInputProps> extends Component<Props, ColorIn
       is_open: false,
       color: props.value
     }
+
+    if(props.getForceClose) props.getForceClose(() => this.togglePicker(false))
   }
 
   onChangePicker = (color: ColorResult, _event: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,6 +49,8 @@ class ColorInput<Props extends ColorInputProps> extends Component<Props, ColorIn
       : !this.state.is_open
 
     console.log('toggle to: ' + new_value)
+
+    if(this.props.onOpenOrClose) this.props.onOpenOrClose(new_value)
       
     this.setState({
       is_open: new_value
@@ -60,11 +66,11 @@ class ColorInputSmall extends ColorInput<ColorInputSmallProps> {
     const { default_value, error } = this.props
     return (
       <React.Fragment>
-        <div className="colorpicker-preview-wrapper" role="button" tabIndex={0} onClick={e => (console.log('onClick'), this.togglePicker(e))}>
+        <div className="colorpicker-preview-wrapper" role="button" tabIndex={0} onClick={e => (console.log('onClick'), this.togglePicker(e))} ref={this.target}>
         <div className={'colorpicker-preview' + (error ? ' error' : '')} style={{backgroundColor: this.state.color || default_value}}></div>
       </div>
       {this.state.is_open
-        ? <Popover referenceElement={this.target.current} close={this.togglePicker} placement="right">
+        ? <Popover referenceElement={this.props.overrideReferenceElement ? this.props.overrideReferenceElement : this.target.current} close={this.togglePicker} placement="top-start">
             <ChromePicker onChange={this.onChangePicker} color={this.state.color} />
           </Popover>
         : null

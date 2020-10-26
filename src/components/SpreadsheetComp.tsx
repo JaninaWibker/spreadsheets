@@ -4,7 +4,7 @@ import '../css/spreadsheet.css'
 import { BorderCell, Cell as NormalCell } from './Cell'
 import Selection from './Selection'
 import ContextMenu from './ContextMenu'
-import { range, format_data, scroll_into_view_if_needed, parse_formula, lookup, compute_additions_and_deletions, compare_cell_ids } from '../util/helpers'
+import { range, format_data, scroll_into_view_if_needed, parse_formula, lookup, compute_additions_and_deletions, compare_cell_ids, is_inside_selection } from '../util/helpers'
 import { generate_col_id_format, generate_id_format } from '../util/cell_id'
 import { get_cell, transform, check_errors, check_circular_for_cell } from '../util/cell_transform'
 import type { getCellCurried } from '../util/cell_transform'
@@ -13,7 +13,7 @@ import type { Cell, CellId, SpreadsheetOptions } from '../types/Spreadsheet'
 import type { AdvancedEntry, Entry } from '../types/ContextMenu'
 import platform_detection from '../util/platform-detection'
 
-import { Clipboard, Copy, Delete, Scissors, Type, Play } from '../icons/index'
+import { Check, Clipboard, Copy, Delete, Scissors, Type, Play } from '../icons/index'
 
 import lib from '../util/stdlib'
 
@@ -119,7 +119,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
     }
   }
 
-  _update = (cell_id: CellId) => {
+  private _update = (cell_id: CellId) => {
     const [col, row] = cell_id
     const cell = this.data[col][row]
 
@@ -132,21 +132,19 @@ export default class Spreadsheet extends Component<IProps, IState> {
       }
   }
 
-  update = (cell_id: CellId) => {
+  private update = (cell_id: CellId) => {
     this._update(cell_id)
     this.forceUpdate()
   }
 
-  openContextMenu = (ref: HTMLElement | null, menu: Entry[]) => {
-    console.log('opening context menu')
+  private openContextMenu = (ref: HTMLElement | null, menu: Entry[]) => {
     this.setState({
       context_menu_entries: menu,
       context_menu_ref: ref
     })
   }
 
-  closeContextMenu = () => {
-    console.log('closing context menu')
+  private closeContextMenu = () => {
     this.setState({
       context_menu_entries: [],
       context_menu_ref: null
@@ -174,26 +172,127 @@ export default class Spreadsheet extends Component<IProps, IState> {
     }
   }
 
-  handleMouseContextMenu = (e: { type: string, buttons: number, button: number, modifiers: Modifiers, preventDefault: () => void, target: EventTarget }, [row, col]: CellId, [whole_row, whole_col]: [boolean, boolean]) => {
+  private generateCsvFromCells = (cells: CellId[][]) => {
+    return cells.map(row => row
+      .map(([row, col]) => this.data[row][col])
+      .map(cell => {
+        const get_value = (cell: Cell) => {
+          if(cell.fn) {
+            if(cell.err || cell.cycle.length > 1) {
+              return '#Err'
+            } else {
+              return cell._vl.toString()
+            }
+          } else {
+            return cell.vl.toString()
+          }
+        }
+        switch(cell.tp) {
+          case CellType.NUMBER: return get_value(cell)
+          case CellType.STRING: return JSON.stringify(get_value(cell))
+          case CellType.EMPTY:  return ''
+          default: throw new Error('forgot to add new case to switch statement')
+        }
+      })
+      .join(',')
+    ).join('\n')
+  }
+
+  private onCopyToClipboard = (cells: CellId[][]) => {
+    console.log('copy', cells)
+
+    navigator.clipboard.writeText(this.generateCsvFromCells(cells))
+      .catch(err => console.error('couldn\'t copy to clipboard', err))
+  }
+
+  private onPasteFromClipboard = (cells: CellId[][]) => {
+    // TODO: this requires permissions and might be a bit annoying to do
+    // TODO: pasting from csv format, need to parse csv and check if selection matches size
+    // TODO: if not; just paste it starting from the top-left corner (so basically not dependent on size altogether)
+    console.log('paste', cells)
+  }
+
+  private onCutToClipboard = (cells: CellId[][]) => {
+    console.log('cut', cells)
+    navigator.clipboard.writeText(this.generateCsvFromCells(cells))
+      .then(() => this.onClearCells(cells))
+      .catch(err => console.error('couldn\'t copy to clipboard', err))
+  }
+
+  private onClearCells = (cells: CellId[][]) => {
+    // TODO: clear all cells
+    console.log('clear', cells)
+  }
+
+  private onChangeCellType = (type: CellType, cells: CellId[][]) => {
+    cells.forEach(row => row.forEach(([row, col]) => {
+      this.data[row][col].tp = type
+      this.data[row][col].stp = undefined
+    }))
+    console.log('cell_type->' + type, cells)
+  }
+
+  private onChangeCellTextColor = (cells: CellId[][], color: string | undefined) => {
+    if(color === undefined) return // TODO: should this clear the color?
+    cells.forEach(row => row.forEach(([row, col]) => {
+      const cell = this.data[row][col]
+      cell.style = { ...cell.style, color: color }
+    }))
+    console.log('text_color->' + color, cells)
+    this.forceUpdate()
+  }
+
+  private onChangeCellBackgroundColor = (cells: CellId[][], color: string | undefined) => {
+    if(color === undefined) return // TODO: should this clear the color?
+    cells.forEach(row => row.forEach(([row, col]) => {
+      const cell = this.data[row][col]
+      cell.style = { ...cell.style, backgroundColor: color }
+    }))
+    console.log('background_color->' + color, cells)
+    this.forceUpdate()
+  }
+
+  private handleMouseContextMenu = (e: { type: string, buttons: number, button: number, modifiers: Modifiers, preventDefault: () => void, target: EventTarget }, [row, col]: CellId, [whole_row, whole_col]: [boolean, boolean]) => {
     if(whole_row || whole_col) return
 
     e.preventDefault()
 
     this.setState({ context_menu_ref: e.target })
 
+    let cells: CellId[][]
+
+    if(is_inside_selection(this.state.selection, [row, col])) {
+      cells = []
+      const start_x = Math.min(this.state.selection.start_x, this.state.selection.end_x)
+      const end_x = Math.max(this.state.selection.start_x, this.state.selection.end_x)
+      const start_y = Math.min(this.state.selection.start_y, this.state.selection.end_y)
+      const end_y = Math.max(this.state.selection.start_y, this.state.selection.end_y)
+      for(let row = start_y; row <= end_y; row++) {
+        cells[row - start_y] = []
+        for(let col = start_x; col <= end_x; col++) {
+          cells[row - start_y].push([row, col])
+        }
+      }
+    } else {
+      cells = [[[row, col]]]
+    }
+
     const menu = [
-      { key: 'copy',      submenu: false, simple: true, name: 'Copy',       action: () => console.log('copy'),  shortcut: ['mod', 'c'], icon: <Copy /> },
-      { key: 'paste',     submenu: false, simple: true, name: 'Paste',      action: () => console.log('paste'), shortcut: ['mod', 'v'], icon: <Clipboard /> },
-      { key: 'cut',       submenu: false, simple: true, name: 'Cut',        action: () => console.log('cut'),   shortcut: ['mod', 'x'], icon: <Scissors /> },
-      { key: 'clear',     submenu: false, simple: true, name: 'Clear cell', action: () => console.log('clear'), shortcut: ['backspace'], icon: <Delete /> },
+      { key: 'copy',      submenu: false, simple: true, name: 'Copy',       action: () => this.onCopyToClipboard(cells),     shortcut: ['mod', 'c'],   icon: <Copy /> },
+      { key: 'paste',     submenu: false, simple: true, name: 'Paste',      action: () => this.onPasteFromClipboard(cells),  shortcut: ['mod', 'v'],   icon: <Clipboard /> },
+      { key: 'cut',       submenu: false, simple: true, name: 'Cut',        action: () => this.onCutToClipboard(cells),      shortcut: ['mod', 'x'],   icon: <Scissors /> },
+      { key: 'clear',     submenu: false, simple: true, name: 'Clear cell', action: () => this.onClearCells(cells),          shortcut: ['backspace'],  icon: <Delete /> },
+      { key: 'cell_type', submenu: true,  simple: true, name: 'Cell Type', menu: [
+        { key: 'number', submenu: false,  simple: true, name: 'Number', action: () => this.onChangeCellType(CellType.NUMBER, cells), icon: cell_type_icons[0]},
+        { key: 'string', submenu: false,  simple: true, name: 'String', action: () => this.onChangeCellType(CellType.STRING, cells), icon: cell_type_icons[1]},
+        { key: 'empty',  submenu: false,  simple: true, name: 'Empty',  action: () => this.onChangeCellType(CellType.EMPTY,  cells), icon: cell_type_icons[2]},
+      ], expand_icon: <Play fill={true} /> },
     ]
 
     this.openContextMenu(e.target as HTMLElement, menu)
-
-    console.log(e, [row, col], [whole_row, whole_col])
   }
 
-  handleMouseSelection = (e: { type: string, buttons: number, button: number, modifiers: Modifiers, preventDefault: () => void, target: EventTarget }, [row, col]: CellId, [whole_row, whole_col]: [boolean, boolean]) => {
+  private handleMouseSelection = (e: { type: string, buttons: number, button: number, modifiers: Modifiers, preventDefault: () => void, target: EventTarget }, [row, col]: CellId, [whole_row, whole_col]: [boolean, boolean]) => {
 
     if(e.buttons === 2 || e.button === 2) return // block right-clicking
     
@@ -493,7 +592,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
             index_cell_width: BORDER_CELL_WIDTH, index_cell_height: BORDER_CELL_HEIGHT}}
         />
         {this.state.context_menu_ref
-          ? <ContextMenu referenceElement={this.state.context_menu_ref} close={this.closeContextMenu} menu={this.state.context_menu_entries} />
+          ? <ContextMenu referenceElement={this.state.context_menu_ref} close={this.closeContextMenu} menu={this.state.context_menu_entries} placement="bottom" />
           : null
         }
       </div>

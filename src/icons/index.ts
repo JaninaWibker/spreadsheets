@@ -1,3 +1,4 @@
+import Check from './Check'
 import Clipboard from './Clipboard'
 import Copy from './Copy'
 import Delete from './Delete'
@@ -6,6 +7,7 @@ import Type from './Type'
 import Play from './Play'
 
 export default {
+  Check,
   Clipboard,
   Copy,
   Delete,
@@ -15,6 +17,7 @@ export default {
 }
 
 export {
+  Check,
   Clipboard,
   Copy,
   Delete,
