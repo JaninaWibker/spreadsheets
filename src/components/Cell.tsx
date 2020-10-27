@@ -4,6 +4,8 @@ import '../css/cell.css'
 
 import { CellType } from '../types/CellTypes'
 
+import { Modifiers } from '../types/Events'
+
 type BorderCellProps = {
   id: string,
   content: string,
@@ -18,7 +20,7 @@ type CellProps = {
   editable: boolean,
   onValueChange: (value: string) => any,
   onMouseEvent: (event: React.MouseEvent<HTMLDivElement, MouseEvent>, id: string) => any,
-  onArrowKeyEvent: (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", shift: boolean, alt: boolean, ctrl: boolean, meta: boolean, preventDefault: () => any) => any,
+  onArrowKeyEvent: (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", modifiers: Modifiers, preventDefault: () => any) => any,
   raw_data: any,
   tp: CellType,
   isFocused: boolean

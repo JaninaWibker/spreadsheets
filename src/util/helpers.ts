@@ -142,6 +142,30 @@ const is_inside_selection = (selection: { start_x: number, start_y: number, end_
   return row >= real_start_y && row <= real_end_y && col >= real_start_x && col <= real_end_x
 }
 
+const get_csv_from_cells = (cells: Cell[][]): string => {
+
+  const get_value = (cell: Cell) => {
+    if(cell.fn) {
+      if(cell.err || cell.cycle.length > 1) {
+        return '#Err'
+      } else {
+        return cell._vl.toString()
+      }
+    } else {
+      return cell.vl.toString()
+    }
+  }
+
+  return cells.map(row => row.map(cell => {
+    switch(cell.tp) {
+      case CellType.NUMBER: return get_value(cell)
+      case CellType.STRING: return JSON.stringify(get_value(cell))
+      case CellType.EMPTY:  return ''
+      default: throw new Error('forgot to add new case to switch statement')
+    }
+  }).join(',')).join('\n')
+}
+
 export default {
   range,
   round,
@@ -160,6 +184,7 @@ export default {
   compute_additions_and_deletions,
   cell_to_json_replacer,
   is_inside_selection,
+  get_csv_from_cells,
 }
 
 export {
@@ -180,4 +205,5 @@ export {
   compute_additions_and_deletions,
   cell_to_json_replacer,
   is_inside_selection,
+  get_csv_from_cells,
 }

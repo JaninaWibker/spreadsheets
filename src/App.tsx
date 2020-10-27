@@ -37,10 +37,10 @@ const demo_spreadsheet: Spreadsheet = {
   //   [{tp: CellType.EMPTY, vl: ''},                                        {tp: CellType.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
   // ])),
   data: fillTableIds(4, 2, fillTableEmpty(4, 2, [
-    [{tp: CellType.NUMBER, vl: 5},     {tp: CellType.NUMBER, vl: '=A1'}],
+    [{tp: CellType.NUMBER, vl: 5},     {tp: CellType.NUMBER, vl: '=A4'}],
     [{tp: CellType.NUMBER, vl: '=B1'}, {tp: CellType.NUMBER, vl: '=B3'}],
     [{tp: CellType.NUMBER, vl: '=A3'}, {tp: CellType.NUMBER, vl: 0}],
-    [{tp: CellType.NUMBER, vl: '=COUNTIF(B1:B4, . it == 0)'},     {tp: CellType.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
+    [{tp: CellType.NUMBER, vl: '=COUNTIF(A1:A3, . it == 0)'},     {tp: CellType.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
   ])),
   name: 'demo_spreadsheet'
 }

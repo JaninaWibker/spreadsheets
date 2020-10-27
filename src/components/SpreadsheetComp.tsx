@@ -2,15 +2,16 @@ import React, { Component } from 'react'
 import '../css/spreadsheet.css'
 
 import { BorderCell, Cell as NormalCell } from './Cell'
-import Selection from './Selection'
+import Selection, { handleKeypress as handleSelectionKeypress, handleMouseSelection, convert_to_selection_coordinates } from './Selection'
 import ContextMenu, { ColorPickerMenuEntry } from './ContextMenu'
-import { range, format_data, scroll_into_view_if_needed, parse_formula, lookup, compute_additions_and_deletions, compare_cell_ids, is_inside_selection } from '../util/helpers'
+import { range, format_data, scroll_into_view_if_needed, parse_formula, lookup, compute_additions_and_deletions, compare_cell_ids, is_inside_selection, get_csv_from_cells } from '../util/helpers'
 import { generate_col_id_format, generate_id_format } from '../util/cell_id'
 import { get_cell, transform, check_errors, check_circular_for_cell } from '../util/cell_transform'
 import type { getCellCurried } from '../util/cell_transform'
 import { CellType } from '../types/CellTypes'
 import type { Cell, CellId, SpreadsheetOptions } from '../types/Spreadsheet'
 import type { AdvancedEntry, Entry } from '../types/ContextMenu'
+import type { Modifiers, ModifiersPlatformAdjusted, FakeMouseEvent } from '../types/Events'
 import platform_detection from '../util/platform-detection'
 
 import { Check, Clipboard, Copy, Delete, Scissors, Type, Play } from '../icons/index'
@@ -33,7 +34,6 @@ document.documentElement.style.setProperty('--border-cell-height-px', BORDER_CEL
 
 const IDENTIFIER_CELLS: { [key: string]: CellId } = {}
 
-type Modifiers = { shift: boolean, alt: boolean, meta: boolean, ctrl: boolean }
 
 interface IProps {
   data: Cell[][],
@@ -151,52 +151,10 @@ export default class Spreadsheet extends Component<IProps, IState> {
     })
   }
 
-  handleCellMouseEvents = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, id: string) => {
-    const [row_str, col_str] = id.split('.')
-    const row = parseInt(row_str, 10)
-    const col = parseInt(col_str, 10)
-    const whole_row = col_str === '_' // if column is unspecified it means whole row
-    const whole_col = row_str === '_' // if row is unspecified it means whole column
-
-    const modifiers: Modifiers = (({ shiftKey, altKey, metaKey, ctrlKey }) => ({
-      shift: shiftKey, alt: altKey, meta: metaKey, ctrl: ctrlKey
-    }))(e)
-
-    const fake_event = { type: e.type, buttons: e.buttons, button: e.button, modifiers: modifiers, preventDefault: e.preventDefault.bind(e), target: e.target }
-
-    switch(e.type) {
-      case 'click':
-      case 'mousedown':
-      case 'mouseup':
-      case 'mouseenter': return this.handleMouseSelection(fake_event, [row, col], [whole_row, whole_col])
-      case 'contextmenu': return this.handleMouseContextMenu(fake_event, [row, col], [whole_row, whole_col])
-    }
-  }
-
   private generateCsvFromCells = (cells: CellId[][]) => {
-    return cells.map(row => row
-      .map(([row, col]) => this.data[row][col])
-      .map(cell => {
-        const get_value = (cell: Cell) => {
-          if(cell.fn) {
-            if(cell.err || cell.cycle.length > 1) {
-              return '#Err'
-            } else {
-              return cell._vl.toString()
-            }
-          } else {
-            return cell.vl.toString()
-          }
-        }
-        switch(cell.tp) {
-          case CellType.NUMBER: return get_value(cell)
-          case CellType.STRING: return JSON.stringify(get_value(cell))
-          case CellType.EMPTY:  return ''
-          default: throw new Error('forgot to add new case to switch statement')
-        }
-      })
-      .join(',')
-    ).join('\n')
+    return get_csv_from_cells(
+      cells.map(row => row.map(([row, col]) => this.data[row][col]))
+    )
   }
 
   private onCopyToClipboard = (cells: CellId[][]) => {
@@ -264,6 +222,29 @@ export default class Spreadsheet extends Component<IProps, IState> {
     this.forceUpdate()
   }
 
+  handleCellMouseEvents = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, id: string) => {
+    const [row_str, col_str] = id.split('.')
+    const row = parseInt(row_str, 10)
+    const col = parseInt(col_str, 10)
+    const whole_row = col_str === '_' // if column is unspecified it means whole row
+    const whole_col = row_str === '_' // if row is unspecified it means whole column
+
+    const modifiers: ModifiersPlatformAdjusted = (({ shiftKey, altKey, metaKey, ctrlKey }) => ({
+      shift: shiftKey, alt: altKey, meta: metaKey, ctrl: ctrlKey, mod: platform_detection.isMacOrIos() ? metaKey : ctrlKey
+    }))(e)
+
+    const fake_event = { type: e.type as FakeMouseEvent["type"], buttons: e.buttons, button: e.button, modifiers: modifiers, preventDefault: e.preventDefault.bind(e), target: e.target }
+
+    switch(e.type) {
+      case 'click':
+      case 'mousedown':
+      case 'mouseup':
+      case 'mouseenter': return this.handleMouseSelection(fake_event, [row, col], [whole_row, whole_col])
+      case 'contextmenu': return this.handleMouseContextMenu(fake_event, [row, col], [whole_row, whole_col])
+      default: throw new Error('unknown event sent to handleCellMouseEvents')
+    }
+  }
+
   private handleMouseContextMenu = (e: { type: string, buttons: number, button: number, modifiers: Modifiers, preventDefault: () => void, target: EventTarget }, [row, col]: CellId, [whole_row, whole_col]: [boolean, boolean]) => {
     if(whole_row || whole_col) return
 
@@ -287,9 +268,9 @@ export default class Spreadsheet extends Component<IProps, IState> {
     if(is_inside_selection(this.state.selection, [row, col])) {
       cells = []
       const start_x = Math.min(this.state.selection.start_x, this.state.selection.end_x)
-      const end_x = Math.max(this.state.selection.start_x, this.state.selection.end_x)
+      const end_x =   Math.max(this.state.selection.start_x, this.state.selection.end_x)
       const start_y = Math.min(this.state.selection.start_y, this.state.selection.end_y)
-      const end_y = Math.max(this.state.selection.start_y, this.state.selection.end_y)
+      const end_y =   Math.max(this.state.selection.start_y, this.state.selection.end_y)
       for(let row = start_y; row <= end_y; row++) {
         cells[row - start_y] = []
         for(let col = start_x; col <= end_x; col++) {
@@ -322,87 +303,25 @@ export default class Spreadsheet extends Component<IProps, IState> {
     this.openContextMenu(e.target as HTMLElement, menu)
   }
 
-  private handleMouseSelection = (e: { type: string, buttons: number, button: number, modifiers: Modifiers, preventDefault: () => void, target: EventTarget }, [row, col]: CellId, [whole_row, whole_col]: [boolean, boolean]) => {
+  private handleMouseSelection = (e: FakeMouseEvent, cell_id: CellId, whole_row_col: [boolean, boolean]) => {
 
     if(e.buttons === 2 || e.button === 2) return // block right-clicking
-    
-    if(e.type === 'mousedown') { // start dragging OR shift-clicking
-      if(e.modifiers.shift) {
-        this.setState({ selection: {
-          start_x:  this.state.selection.start_x,
-          start_y:  this.state.selection.start_y,
-          end_x:    col,
-          end_y:    row,
-        }})
-      } else {
-        this.setState({ selection: {
-          start_x:  col,
-          start_y:  row,
-          end_x:    col,
-          end_y:    row,
-        }})
-      }
-    } else if(e.type === 'mouseup') { // stop dragging
-      this.setState({ selection: {
-        start_x:  this.state.selection.start_x,
-        start_y:  this.state.selection.start_y,
-        end_x:    col,
-        end_y:    row,
-      }})
-    } else if(e.type === 'mouseenter' && e.buttons === 1) { // dragging (without explicitely starting or stopping)
-      this.setState({ selection: {
-        start_x:  this.state.selection.start_x,
-        start_y:  this.state.selection.start_y,
-        end_x:    col,
-        end_y:    row,
-      }})
-    } else if(e.type === 'click') { // clicking on border cell
-      if(e.modifiers.shift) { // enlarge selection (using start of selection)
-        this.setState({ selection: {
-          start_x: whole_row ? 0 : this.state.selection.start_x,
-          start_y: whole_col ? 0 : this.state.selection.start_y,
-          end_x:   whole_row ? this.state.dimensions.x-1 : col,
-          end_y:   whole_col ? this.state.dimensions.y-1 : row,
-        }})
-      } else {
-        console.log(`from ${whole_row ? 0 : col}.${whole_col ? 0 : row} to ${whole_row ? this.state.dimensions.x-1 : col}.${whole_col ? this.state.dimensions.y-1 : row}`)
-        this.setState({ selection: {
-          start_x:  whole_row ? 0 : col,
-          start_y:  whole_col ? 0 : row,
-          end_x:    whole_row ? this.state.dimensions.x-1 : col,
-          end_y:    whole_col ? this.state.dimensions.y-1 : row,
-        }})
-      }
-    }
+
+    this.setState({
+      selection: handleMouseSelection(this.state.selection, this.state.dimensions, e, cell_id, whole_row_col)
+    })
   }
 
-  handleKeypress = (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", shift: boolean, alt: boolean, ctrl: boolean, meta: boolean, preventDefault: () => any) => {
-    const sx: number = { ArrowLeft: -1, ArrowRight: 1, ArrowUp:  0, ArrowDown: 0 }[key] || 0
-    const sy: number = { ArrowLeft:  0, ArrowRight: 0, ArrowUp: -1, ArrowDown: 1 }[key] || 0
+  handleKeypress = (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", modifiers: Modifiers, preventDefault: () => void) => {
 
-    // TODO: set proper focus to the cell underneath the cursor; this allows pressing enter or similar to start editing
-
-    // TODO: tab should select the next cell (shift tab inverse; ctrl either no difference or input completely ignored)
-
-    // TODO: probably not the right place to add this but escape should deselect any selected cells and delete / bspace 
-    // TODO: should delete contents of all selected cells (at ones; trigger update after all deletions are completed)
-
-    const mod = platform_detection.isMacOrIos() ? meta : ctrl // choose appropriate modifier for platform
-
-    const asx = sx * (mod ? this.state.dimensions.x : 1) // adjusted change in x direction
-    const asy = sy * (mod ? this.state.dimensions.y : 1) // adjusted change in y direction
+    const { selection, focused } = handleSelectionKeypress(key, {
+      ...modifiers,
+      mod: platform_detection.isMacOrIos() ? modifiers.meta : modifiers.ctrl // choose appropriate modifier for platform
+    }, convert_to_selection_coordinates(this.state.selection), this.state.dimensions)
 
     preventDefault()
 
-    this.setState({selection: {
-      start_x: Math.min(this.state.dimensions.x-1, Math.max(0, this.state.selection.start_x + ((shift && !alt) ? 0 : asx))),
-      start_y: Math.min(this.state.dimensions.y-1, Math.max(0, this.state.selection.start_y + ((shift && !alt) ? 0 : asy))),
-      end_x: Math.min(this.state.dimensions.x-1, Math.max(0, ((alt || shift) ? this.state.selection.end_x : this.state.selection.start_x) + asx)),
-      end_y: Math.min(this.state.dimensions.y-1, Math.max(0, ((alt || shift) ? this.state.selection.end_y : this.state.selection.start_y) + asy)),
-    }, focused: {
-      x: this.state.selection.start_x,
-      y: this.state.selection.start_y
-    }}, () => {
+    this.setState({ selection, focused }, () => {
       // if(this.selectionElement) scroll_into_view_if_needed(this.selectionElement) // TODO: what is the purpose of this exactly?; well this element SHOULD exist but somehow isn't mentioned anywhere else
     })
   }
@@ -594,14 +513,13 @@ export default class Spreadsheet extends Component<IProps, IState> {
   render() {
     return (
       <div style={{
-        width: (((this.data[0].length) * CELL_WIDTH) + BORDER_CELL_WIDTH + 1) + 'px',
-        height: (((this.data.length) * CELL_HEIGHT) + BORDER_CELL_HEIGHT + 1) + 'px'
+        width:  ((this.state.dimensions.x * CELL_WIDTH)  + BORDER_CELL_WIDTH  + 1) + 'px',
+        height: ((this.state.dimensions.y * CELL_HEIGHT) + BORDER_CELL_HEIGHT + 1) + 'px'
       }}>
         <table className="table">
           <tbody>
             <tr id={'r0l'} key={'r0l'}>
               <BorderCell key={'_._'} id={'_._'} className="" onMouseEvent={this.handleCellMouseEvents} content="/" />
-              {/* <th className="border border-left-top" id={'_._'} key={'_._'} onClick={e => this.handleCellMouseEvents(e, '_._')}><div><span>{'/'}</span></div></th> */}
               {range(this.columns).map(col_num =>
                   <BorderCell key={'_.' + col_num} id={'_.' + col_num} className="border-top" content={generate_col_id_format(col_num)} onMouseEvent={this.handleCellMouseEvents} />
               )}
@@ -618,7 +536,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
           start={{ x: this.state.selection.start_x, y: this.state.selection.start_y }}
           end=  {{ x: this.state.selection.end_x,   y: this.state.selection.end_y }}
           constants={{
-            cell_width:       CELL_WIDTH,       cell_height:       CELL_HEIGHT,
+            cell_width:       CELL_WIDTH,        cell_height:       CELL_HEIGHT,
             index_cell_width: BORDER_CELL_WIDTH, index_cell_height: BORDER_CELL_HEIGHT}}
         />
         {this.state.context_menu_ref
