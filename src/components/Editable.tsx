@@ -50,11 +50,21 @@ export default class Editable extends Component<IProps, IState> {
 
     console.log(this.props.children)
 
+    const text = this.props.raw_data !== undefined
+      ? this.props.raw_data 
+      : this.props.text !== undefined
+        ? this.props.text
+        : this.props.children!.toString()
+
+    const pretty_text = this.props.text !== undefined
+      ? this.props.text
+      : (this.props.children && this.props.children.toString()) || undefined
+
     this.state = {
       editing: false,
-      old_text: this.props.raw_data || this.props.text || this.props.children!.toString(),
-      text: this.props.raw_data || this.props.text || this.props.children!.toString(),
-      pretty_text: this.props.text || (this.props.children && this.props.children.toString()) || undefined
+      old_text: text,
+      text: text,
+      pretty_text: pretty_text, //this.props.text || (this.props.children && this.props.children.toString()) || undefined
     }
 
 
@@ -107,7 +117,12 @@ export default class Editable extends Component<IProps, IState> {
           update_state(new_raw_text, new_raw_text, nextProps.children)
         }
       } else {
-        const new_text = nextProps.pretty_text || nextProps.text || nextProps.children!.toString()
+
+        const new_text = nextProps.pretty_text !== undefined
+          ? nextProps.pretty_text
+          : nextProps.text !== undefined
+            ? nextProps.text
+            : nextProps.children!.toString()
 
         if(new_raw_text !== this.state.text || new_text !== this.state.pretty_text) {
           update_state(new_raw_text, new_raw_text, new_text)
@@ -175,11 +190,13 @@ export default class Editable extends Component<IProps, IState> {
             ref={el => this.el = el} />
         : this.props.setInnerHTML
           ? <span
+              className="editable-preview editable-html"
               tabIndex={0}
               onKeyDown={this.onKeyDown}
               onDoubleClick={this.startEdit}
               dangerouslySetInnerHTML={{__html: this.state.pretty_text as string}} />
           : <span
+              className="editable-preview"
               tabIndex={0}
               onKeyDown={this.onKeyDown}
               onDoubleClick={this.startEdit}>

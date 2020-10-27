@@ -7,3 +7,77 @@ th.border-cell {
 th.border-cell:hover {
   background-color: rgba(248,28,229,0.35);
 }
+
+td.cell-outer .cell span.editable-preview {
+  user-select: none;
+}
+
+table.table th.border-cell,
+table.table tr > td.cell-outer {
+  position: relative;
+  display: inline-block;
+  box-sizing: border-box;
+  margin: 0px;
+  padding: 0px;
+  border-width: 1px 1px 0 0;
+  border-style: solid;
+  border-color: #cacaca;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+table.table th.border-cell > div.cell,
+table.table td.cell-outer > div.cell {
+  height: 100%;
+}
+
+table.table div.cell > span.editable-preview {
+  line-height: 15px;
+  display: inline-block;
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  padding: 4px;
+}
+
+table.table th.border-cell > div.cell > span:focus,
+table.table div.cell > span.editable-preview:focus {
+  outline: none;
+}
+
+
+
+/*  width & height for the outer most cells with the 'index' (A, B, C...; 1, 2, 3...); aka border cells */
+table.table th.border-cell {
+  width: var(--border-cell-width-px);
+  height: var(--border-cell-height-px);
+}
+
+/*  the left-most and top-most cell (0/0 technically; the one with the '/').
+    This needs to have both width & height from the border_cell constants instead of only one of them */
+table.table th.border.border-left-top {
+  width: var(--border-cell-width-px);
+  height: var(--border-cell-height-px);
+}
+
+/*  **top-most row**
+    settings the width to the default cell width (because this has to fit to the normal cells)
+    but setting the height to the border cell height (this does not have to fit to the normal cells) */
+table.table th.border.border-top {
+  width: var(--cell-width-px);
+  height: var(--border-cell-height-px);
+}
+
+/*  **left-most row**
+    setting the height to the default cell height (because this has to fit to the normal cells)
+    but setting the width to the border cell width (this does not have t ofit to the normal cells) */
+table.table th.border.border-left {
+  width: var(--border-cell-width-px);
+  height: var(--cell-height-px);
+}
+
+/* width & height for all other cells */
+table.table tr > td.cell-outer {
+  width: var(--cell-width-px);
+  height: var(--cell-height-px);
+}

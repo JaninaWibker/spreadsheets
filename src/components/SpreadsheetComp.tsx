@@ -165,6 +165,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
     const fake_event = { type: e.type, buttons: e.buttons, button: e.button, modifiers: modifiers, preventDefault: e.preventDefault.bind(e), target: e.target }
 
     switch(e.type) {
+      case 'click':
       case 'mousedown':
       case 'mouseup':
       case 'mouseenter': return this.handleMouseSelection(fake_event, [row, col], [whole_row, whole_col])
@@ -226,8 +227,19 @@ export default class Spreadsheet extends Component<IProps, IState> {
 
   private onChangeCellType = (type: CellType, cells: CellId[][]) => {
     cells.forEach(row => row.forEach(([row, col]) => {
-      this.data[row][col].tp = type
-      this.data[row][col].stp = undefined
+      const cell = this.data[row][col]
+      const old_type = cell.tp
+      cell.tp = type
+      cell.stp = undefined
+
+      if(old_type === CellType.EMPTY) {
+        switch(type) {
+          case CellType.NUMBER: cell.vl = 0;  break;
+          case CellType.STRING: cell.vl = ''; break;
+          case CellType.EMPTY: break;
+          default: throw new Error('forgot to add new case to switch statement')
+        }
+      }
     }))
     console.log('cell_type->' + type, cells)
   }
