@@ -4,7 +4,7 @@ import type { Modifier } from 'react-popper'
 
 const backtrackFindClass = (node: HTMLElement, className: string): boolean => {
   if(node.classList.contains(className)) return true
-  else return node.parentElement !== null && backtrackFindClass(node.parentElement as HTMLElement, className)
+  else return node.parentElement !== null && backtrackFindClass(node.parentElement, className)
 }
 
 const useOutsideDetecter = (ref: HTMLElement | null, cb: () => void) => useEffect(() => {
@@ -32,8 +32,8 @@ type PopoverProps = {
 
 const Popover = ({ referenceElement, close, placement='auto', auto_focus=false, children, modifiers=[] } : PopoverProps) => {
 
-  const [popperElement, setPopperElement] = useState(null) as [HTMLElement | null, React.Dispatch<React.SetStateAction<HTMLElement | null>>]
-  const [arrowElement, setArrowElement] = useState(null) as [HTMLElement | null, React.Dispatch<React.SetStateAction<HTMLElement | null>>]
+  const [popperElement, setPopperElement] = useState<HTMLElement | null>(null)
+  const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null)
   const {styles, attributes} = usePopper(referenceElement, popperElement, {
     modifiers: [
       { name: 'arrow', options: { element: arrowElement } },

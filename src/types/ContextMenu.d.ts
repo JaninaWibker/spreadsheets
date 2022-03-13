@@ -1,7 +1,7 @@
 export type SimpleEntry = {
   key: string,
-  simple: boolean,
-  submenu: boolean,
+  simple: true,
+  submenu: false,
   name: string,
   icon?: JSX.Element,
   action?: () => any,
@@ -10,16 +10,16 @@ export type SimpleEntry = {
 
 export type AdvancedEntry = {
   key: string,
-  simple: boolean,
-  submenu: boolean,
+  simple: false,
+  submenu: false,
   component: (entry: AdvancedEntry, close: () => void) => JSX.Element,
   shortcut?: string[]
 }
 
 export type SimpleSubmenuEntry = {
   key: string,
-  simple: boolean,
-  submenu: boolean,
+  simple: true,
+  submenu: true,
   name: string,
   expand_icon?: JSX.Element,
   action?: () => any,
@@ -28,8 +28,8 @@ export type SimpleSubmenuEntry = {
 
 export type AdvancedSubmenuEntry = {
   key: string,
-  simple: boolean,
-  submenu: boolean,
+  simple: false,
+  submenu: true,
   component: (
     entry: AdvancedSumenuEntry,
     close: () => void,

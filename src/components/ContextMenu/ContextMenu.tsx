@@ -3,7 +3,7 @@ import Popover from '../Popover'
 import SimpleEntry from './SimpleEntry'
 import SimpleSubmenu from './SimpleSubmenu'
 
-import type { AdvancedEntry as AdvancedEntryT, AdvancedSubmenuEntry, Entry as EntryT, SimpleEntry as SimpleEntryT, SimpleSubmenuEntry } from '../../types/ContextMenu'
+import type { AdvancedEntry as AdvancedEntryT, AdvancedSubmenuEntry, Entry as EntryT } from '../../types/ContextMenu'
 
 import '../../css/contextmenu.css'
 
@@ -30,11 +30,11 @@ const AdvancedSubmenu = ({ entry, close, register_submenu, notify_open_submenu }
 
 const Entry = ({ entry, close, register_submenu, open_submenu }: EntryProps) => entry.submenu
   ? entry.simple
-    ? <SimpleSubmenu   entry={entry as SimpleSubmenuEntry}   close={close} register_submenu={register_submenu} notify_open_submenu={open_submenu} />
-    : <AdvancedSubmenu entry={entry as AdvancedSubmenuEntry} close={close} register_submenu={register_submenu} notify_open_submenu={open_submenu} />
+    ? <SimpleSubmenu   entry={entry} close={close} register_submenu={register_submenu} notify_open_submenu={open_submenu} />
+    : <AdvancedSubmenu entry={entry} close={close} register_submenu={register_submenu} notify_open_submenu={open_submenu} />
   : entry.simple
-    ? <SimpleEntry entry={entry as SimpleEntryT} close={close} />
-    : <AdvancedEntry entry={entry as AdvancedEntryT} close={close} />
+    ? <SimpleEntry   entry={entry} close={close} />
+    : <AdvancedEntry entry={entry} close={close} />
 
 type ContextMenuProps = {
   referenceElement: any, // TODO: find out actual type and figure out to do refs well again
