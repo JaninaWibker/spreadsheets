@@ -43,22 +43,21 @@ const demo_spreadsheet: Spreadsheet = {
     [{tp: CellType.NUMBER, vl: '=A3'}, {tp: CellType.NUMBER, vl: 0}],
     [{tp: CellType.NUMBER, vl: '=COUNTIF(A1:A3, . it == 0)'},     {tp: CellType.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
   ])),
-  name: 'demo_spreadsheet'
+  name: 'demo_spreadsheet',
+  identifier_cells: {}
 }
 
 const App = () => {
 
   const [spreadsheet, setSpreadsheet] = React.useState<Spreadsheet>(demo_spreadsheet)
 
-  const updateCallback = (data: Spreadsheet['data']) => setSpreadsheet({ data: data, options: spreadsheet.options, name: spreadsheet.name })
+  const updateCallback = (data: Spreadsheet['data']) => setSpreadsheet({ data: data, options: spreadsheet.options, name: spreadsheet.name, identifier_cells: spreadsheet.identifier_cells })
   
   return (
     <div>
       <div className="spreadsheet-wrapper">
         <SpreadsheetComp
-          options={spreadsheet.options}
-          data={spreadsheet.data}
-          name={spreadsheet.name}
+          spreadsheet={spreadsheet}
           notifyUpdate={updateCallback} />
       </div>
       <button onClick={() => setSpreadsheet(file_demo_spreadsheet)}>load other spreadsheet</button>

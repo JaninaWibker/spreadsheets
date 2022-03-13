@@ -80,7 +80,8 @@ const parse_file = (str: string, name?: string): Spreadsheet => {
   return {
     options: transform_options(parse_options(config)),
     data: transform_data(parse_data(rest)),
-    name: name || 'spreadsheet-' + Math.floor(Math.random()*Math.pow(36, 4)).toString(36)
+    name: name || 'spreadsheet-' + Math.floor(Math.random()*Math.pow(36, 4)).toString(36),
+    identifier_cells: {}
   }
 }
 

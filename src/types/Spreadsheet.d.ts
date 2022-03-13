@@ -60,5 +60,6 @@ export type SpreadsheetOptions = {
 export type Spreadsheet = {
   options: SpreadsheetOptions
   data: Cell[][],
+  identifier_cells: { [key: string]: CellId } = {},
   name: string
 }

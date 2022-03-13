@@ -34,10 +34,8 @@ document.documentElement.style.setProperty('--cell-height-px', CELL_HEIGHT + 'px
 document.documentElement.style.setProperty('--border-cell-width-px', BORDER_CELL_WIDTH + 'px');
 document.documentElement.style.setProperty('--border-cell-height-px', BORDER_CELL_HEIGHT + 'px');
 
-const IDENTIFIER_CELLS: { [key: string]: CellId } = {}
-
-
-type SpreadsheetProps = Spreadsheet & {
+type SpreadsheetProps = {
+  spreadsheet: Spreadsheet,
   notifyUpdate: (data: Spreadsheet['data']) => void
 }
 
@@ -62,18 +60,20 @@ type SpreadsheetState = {
 
 export default class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetState> {
 
-  data: Cell[][]
-  name: string
+  spreadsheet: Spreadsheet
   g: getCellCurried
 
   constructor(props: SpreadsheetProps) {
     super(props)
 
-    this.data    = transform(lib, this.props.data, IDENTIFIER_CELLS)
-    this.name    = this.props.name
+    this.spreadsheet = props.spreadsheet
 
-    this.props.notifyUpdate(this.data)
-    this.g = get_cell(lib, this.data, IDENTIFIER_CELLS)
+    console.info(JSON.parse(JSON.stringify(this.props.spreadsheet.data)))
+    this.spreadsheet.data = transform(lib, this.props.spreadsheet.data, this.spreadsheet.identifier_cells)
+
+    console.info(this.spreadsheet.data)
+    this.props.notifyUpdate(this.spreadsheet.data)
+    this.g = get_cell(lib, this.spreadsheet.data, this.spreadsheet.identifier_cells)
 
     this.state = {
       selection: {
@@ -92,13 +92,13 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
   }
 
   componentDidUpdate(_prevProps: Readonly<SpreadsheetProps> & Readonly<{ children?: React.ReactNode }>) {
-    if(this.name !== this.props.name) {
-      this.name    = this.props.name
-      this.data    = transform(lib, this.props.data, IDENTIFIER_CELLS)
+    if(this.spreadsheet.name !== this.props.spreadsheet.name) {
+      this.spreadsheet.name = this.props.spreadsheet.name
+      this.spreadsheet.data = transform(lib, this.props.spreadsheet.data, this.spreadsheet.identifier_cells)
 
-      this.g = get_cell(lib, this.data, IDENTIFIER_CELLS)
+      this.g = get_cell(lib, this.spreadsheet.data, this.spreadsheet.identifier_cells)
 
-      this.props.notifyUpdate(this.data)
+      this.props.notifyUpdate(this.spreadsheet.data)
 
       this.forceUpdate()
     }
@@ -106,9 +106,9 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
 
   private _update = (cell_id: CellId) => {
     const [col, row] = cell_id
-    const cell = this.data[col][row]
+    const cell = this.spreadsheet.data[col][row]
 
-    this.data[col][row].visited = false
+    this.spreadsheet.data[col][row].visited = false
     
     if(cell.changes) {
       cell.changes // filter out cells which are also in the same cycle as the current cell // TODO: does this filter out too much?; should they be updated at least once?
@@ -138,7 +138,7 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
 
   private generateCsvFromCells = (cells: CellId[][]) => {
     return get_csv_from_cells(
-      cells.map(row => row.map(([row, col]) => this.data[row][col]))
+      cells.map(row => row.map(([row, col]) => this.spreadsheet.data[row][col]))
     )
   }
 
@@ -170,7 +170,7 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
 
   private onChangeCellType = (type: CellType, cells: CellId[][]) => {
     cells.forEach(row => row.forEach(([row, col]) => {
-      const cell = this.data[row][col]
+      const cell = this.spreadsheet.data[row][col]
       const old_type = cell.tp
       cell.tp = type
       cell.stp = undefined
@@ -190,7 +190,7 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
   private onChangeCellTextColor = (cells: CellId[][], color: string | undefined) => {
     if(color === undefined) return // TODO: should this clear the color?
     cells.forEach(row => row.forEach(([row, col]) => {
-      const cell = this.data[row][col]
+      const cell = this.spreadsheet.data[row][col]
       cell.style = { ...cell.style, color: color }
     }))
     console.log('text_color->' + color, cells)
@@ -200,7 +200,7 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
   private onChangeCellBackgroundColor = (cells: CellId[][], color: string | undefined) => {
     if(color === undefined) return // TODO: should this clear the color?
     cells.forEach(row => row.forEach(([row, col]) => {
-      const cell = this.data[row][col]
+      const cell = this.spreadsheet.data[row][col]
       cell.style = { ...cell.style, backgroundColor: color }
     }))
     console.log('background_color->' + color, cells)
@@ -233,7 +233,7 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
   private handleMouseContextMenu = (e: { type: string, buttons: number, button: number, modifiers: Modifiers, preventDefault: () => void, target: EventTarget }, [row, col]: CellId, [whole_row, whole_col]: [boolean, boolean]) => {
     if(whole_row || whole_col) return
 
-    const cell = this.data[row][col]
+    const cell = this.spreadsheet.data[row][col]
 
     let cell_type_icons = [<div />, <div />, <div />]
 
@@ -293,8 +293,8 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
     if(e.buttons === 2 || e.button === 2) return // block right-clicking
 
     const dimensions = {
-      x: this.data[0].length, // columns
-      y: this.data.length     // rows
+      x: this.spreadsheet.data[0].length, // columns
+      y: this.spreadsheet.data.length     // rows
     }
 
     this.setState({
@@ -305,8 +305,8 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
   handleKeypress = (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", modifiers: Modifiers, preventDefault: () => void) => {
 
     const dimensions = {
-      x: this.data[0].length, // columns
-      y: this.data.length     // rows
+      x: this.spreadsheet.data[0].length, // columns
+      y: this.spreadsheet.data.length     // rows
     }
 
     const { selection, focused } = handleSelectionKeypress(key, {
@@ -325,13 +325,13 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
     const [row, col] = cell._id
 
     if(cell.name) {
-      IDENTIFIER_CELLS[cell.name] = cell._id
+      this.spreadsheet.identifier_cells[cell.name] = cell._id
     }
 
     // nothing has changed (this check only works if vl is a string; numbers are explicitly checked again later on)
     if(value === cell.vl) return
 
-    // TODO: why is this.data[row][col] used and not just cell? Is cell just a copy?
+    // TODO: why is this.spreadsheet.data[row][col] used and not just cell? Is cell just a copy?
 
     // used to compute which cells need to have their changes array updated
     const old_refs = cell.refs
@@ -345,7 +345,7 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
       const {fn, refs: raw_refs} = parse_formula(value.substring(1))!
       cell.vl = value
       cell.fn = fn
-      cell.refs = raw_refs.map(ref => typeof ref === 'string' ? lookup(ref, IDENTIFIER_CELLS) : ref) as CellId[]
+      cell.refs = raw_refs.map(ref => typeof ref === 'string' ? lookup(ref, this.spreadsheet.identifier_cells) : ref) as CellId[]
     } else {
       if(cell.tp === CellType.NUMBER) {
         cell.fn = undefined
@@ -394,19 +394,19 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
     arr.forEach(pair => {
       switch(pair.from) {
         case 'old': {
-          this.data[pair.value[0]][pair.value[1]].changes = this.data[pair.value[0]][pair.value[1]].changes.filter(ref =>
+          this.spreadsheet.data[pair.value[0]][pair.value[1]].changes = this.spreadsheet.data[pair.value[0]][pair.value[1]].changes.filter(ref =>
             ref[0] !== cell.row || ref[1] !== cell.col
           )
           console.log('in cell ' + generate_id_format(pair.value) + ' remove ' + generate_id_format(cell._id) + ' from changes')
         } break;
         case 'new': {
-          this.data[pair.value[0]][pair.value[1]].changes.push(cell._id)
+          this.spreadsheet.data[pair.value[0]][pair.value[1]].changes.push(cell._id)
           console.log('in cell ' + generate_id_format(pair.value) + ' add ' + generate_id_format(cell._id) + ' to changes')
         } break;
       }
     })
 
-    check_circular_for_cell(this.data, cell)
+    check_circular_for_cell(this.spreadsheet.data, cell)
 
     const new_cycle = cell.cycle
 
@@ -415,16 +415,16 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
       const arr = compute_additions_and_deletions(new_cycle, old_cycle).sort((a, b) => (+(b.from === 'old')) - (+(a.from === 'old')))
 
       // update all existing cycle arrays, even if the array is going to be removed later on
-      old_cycle.forEach(([row, col]) => this.data[row][col].cycle = new_cycle)
+      old_cycle.forEach(([row, col]) => this.spreadsheet.data[row][col].cycle = new_cycle)
 
       // remove cycle arrays from now unused cells and add to newly added cells
       arr.forEach(pair => {
         switch(pair.from) {
           case 'old': {
-            this.data[pair.value[0]][pair.value[1]].cycle = []
+            this.spreadsheet.data[pair.value[0]][pair.value[1]].cycle = []
           } break;
           case 'new': {
-            this.data[pair.value[0]][pair.value[1]].cycle = new_cycle
+            this.spreadsheet.data[pair.value[0]][pair.value[1]].cycle = new_cycle
           } break;
         }
       })
@@ -447,7 +447,7 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
 
       try {
         cell.err = undefined // TODO: does this cause any unwanted side effects that im not aware of?
-        cell._vl = cell.fn!((cell_id: string) => (this.g(cell_id, cell._id, false, this.data[row][col]._id)), lib)
+        cell._vl = cell.fn!((cell_id: string) => (this.g(cell_id, cell._id, false, this.spreadsheet.data[row][col]._id)), lib)
         console.log(generate_id_format(cell._id) + ' updated to ' + cell._vl)
       } catch(err) {
         cell.err = err
@@ -458,13 +458,13 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
       
       cell.changes
         .filter(cell_id => !cell.cycle.find(cell_id_cycle => compare_cell_ids(cell_id, cell_id_cycle)))
-        .map(([row, col]) => recurse(this.data[row][col], self))
+        .map(([row, col]) => recurse(this.spreadsheet.data[row][col], self))
 
     }
 
-    this.data[row][col].changes
-      .filter(cell_id => !this.data[row][col].cycle.find(cell_id_cycle => compare_cell_ids(cell_id, cell_id_cycle)))
-      .map(([row, col]) => recurse(this.data[row][col], generate_id_format(cell._id)))
+    this.spreadsheet.data[row][col].changes
+      .filter(cell_id => !this.spreadsheet.data[row][col].cycle.find(cell_id_cycle => compare_cell_ids(cell_id, cell_id_cycle)))
+      .map(([row, col]) => recurse(this.spreadsheet.data[row][col], generate_id_format(cell._id)))
 
     this.update(cell._id)
   }
@@ -481,7 +481,7 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
     } else if(cell.cycle.length > 0) {
       content = '#Circular references'
     } else {
-      content = format_data(v, cell.tp, cell.stp, cell.r_dec || this.props.options.rounding)
+      content = format_data(v, cell.tp, cell.stp, cell.r_dec || this.props.spreadsheet.options.rounding)
     }
 
     // console.log('called for cell: ' + generate_id_format(cell._id) + ' new value: ' + v)
@@ -507,8 +507,8 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
   // required for some reason (could be floating point precision but I don't think so, probably just subpixel rendering stuff)
   render() {
 
-    const columns = this.data[0].length
-    const rows = this.data.length
+    const columns = this.spreadsheet.data[0].length
+    const rows = this.spreadsheet.data.length
 
     return (
       <div style={{
@@ -526,7 +526,7 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
             {range(rows).map(row_num =>
               <tr id={'r' + row_num} key={'r' + row_num}>
                 <BorderCell key={row_num + '._'} id={row_num + '._'} className="border-left" content={String(row_num+1)} onMouseEvent={this.handleCellMouseEvents} />
-                {range(columns).map(col_num => this.render_cell(this.data[row_num][col_num]))}
+                {range(columns).map(col_num => this.render_cell(this.spreadsheet.data[row_num][col_num]))}
               </tr>
             )}
           </tbody>
