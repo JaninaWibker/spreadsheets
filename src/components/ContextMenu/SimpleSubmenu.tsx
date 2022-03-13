@@ -1,0 +1,45 @@
+import React, { useState, useRef } from 'react'
+import Popover from '../Popover'
+import ContextMenu from './ContextMenu'
+
+import type { SimpleSubmenuEntry } from '../../types/ContextMenu'
+
+const SimpleSubmenu = ({ entry, close, register_submenu, notify_open_submenu }: { entry: SimpleSubmenuEntry, close: () => void, register_submenu: (submenu: { is_open: boolean, close: () => void }) => number, notify_open_submenu: (idx: number, is_open: boolean) => void }) => {
+
+  const [is_submenu_open, set_submenu_open] = useState(false)
+  const [entered_submenu, set_entered_submenu] = useState(false)
+
+  const onSubmenuOpen = (bool: boolean) => {
+    if(bool && entry.action) entry.action()
+    notify_open_submenu(submenu_id, bool)
+    set_submenu_open(bool)
+  }
+
+  const submenu_id = register_submenu({ is_open: false, close: () => onSubmenuOpen(false) })
+
+  const toggle_submenu = () => onSubmenuOpen(!is_submenu_open)
+  const open_submenu = () => onSubmenuOpen(true)
+  const close_submenu = () => setTimeout(() => entered_submenu || onSubmenuOpen(false), 200)
+
+  const list_item_ref = useRef(null)
+
+  return (
+    <div role="button" tabIndex={0} ref={list_item_ref} key={entry.key} className="contextmenu-entry-outer" onClick={toggle_submenu} onMouseEnter={open_submenu} onMouseLeave={close_submenu} onKeyDown={e => e.key === ' ' && toggle_submenu()}>
+      <div className="contextmenu-entry-inner">
+        <div className="text_wrapper">
+          <div className="text">{entry.name}</div>
+        </div>
+        <div className="icon_wrapper">
+          {entry.expand_icon}
+        </div>
+      </div>
+      {is_submenu_open
+        ? <Popover referenceElement={list_item_ref.current} close={close_submenu} modifiers={[{ name: 'offset', options: { offset: [-45, 0], } }]}>
+            <ContextMenu referenceElement={list_item_ref.current} menu={entry.menu} close={close} placement="top-start" onMouseEnter={() => set_entered_submenu(true)} onMouseLeave={() => { set_entered_submenu(false); set_submenu_open(false); }} />
+          </Popover>
+        : null}
+    </div>
+  )
+}
+
+export default SimpleSubmenu
