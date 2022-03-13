@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react'
 import Popover from '../Popover'
 import ContextMenu from './ContextMenu'
+import type { MenuProps } from './ContextMenu'
 
 import type { SimpleSubmenuEntry } from '../../types/ContextMenu'
 
-const SimpleSubmenu = ({ entry, close, register_submenu, notify_open_submenu }: { entry: SimpleSubmenuEntry, close: () => void, register_submenu: (submenu: { is_open: boolean, close: () => void }) => number, notify_open_submenu: (idx: number, is_open: boolean) => void }) => {
+const SimpleSubmenu = ({ entry, close, register_submenu, notify_open_submenu }: MenuProps<SimpleSubmenuEntry>) => {
 
   const [is_submenu_open, set_submenu_open] = useState(false)
   const [entered_submenu, set_entered_submenu] = useState(false)

@@ -1,9 +1,9 @@
 import React from 'react'
 import KeyboardShortcutDisplay from '../KeyboardShortcutDisplay'
 
-import type { SimpleEntry as SimpleEntryProps } from '../../types/ContextMenu'
+import type { SimpleEntry as SimpleEntryT } from '../../types/ContextMenu'
 
-const SimpleEntry = ({ entry, close }: { entry: SimpleEntryProps, close: () => void }) => {
+const SimpleEntry = ({ entry, close }: { entry: SimpleEntryT, close: () => void }) => {
 
   const callback = () => {
     if(entry.action) entry.action()
