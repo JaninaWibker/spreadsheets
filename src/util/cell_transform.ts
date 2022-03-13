@@ -1,6 +1,6 @@
 import { generate_id_format } from './cell_id'
 import { lookup, destructure, default_value, is_formula, parse_formula, cell_to_json_replacer, compare_cell_ids } from './helpers'
-import type { Cell, CellId } from '../types/Spreadsheet'
+import type { Cell, CellId, Spreadsheet } from '../types/Spreadsheet'
 import { CellType } from '../types/CellTypes'
 import { get_cycles, find_cycle_starting_from_node } from '../util/cycle_detection'
 
@@ -16,22 +16,22 @@ export type getCell = (lib: LibType, data: Cell[][], identifier_cells: { [key: s
 // call_cell is the cell that initiated the whole recursive descend
 // byRender skips a check for circular calls as the caller (usually identified by call_cell) is not an actual cell but the renderer
 // rec_call_cell is the direct caller; meaning the target of the call one stack frame lower on the call stack
-const get_cell = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId }) => {
+const get_cell = (lib: LibType, spreadsheet: Pick<Spreadsheet, 'data' | 'identifier_cells'>) => {
 
   const inner_get_cell_raw = (target: string, call_cell: CellId, byRender=false, rec_call_cell: CellId): string | number => {
     // console.log(cell, call_cell, byRender, rec_call_cell)
 
-    const pair = lookup(target, identifier_cells)
+    const pair = lookup(target, spreadsheet.identifier_cells)
 
     if(!pair) {
       throw Error('not a valid Cell (named cell not defined or mistakenly identified as identifier (if this is what happened, you probably have an error in your selector))')
     }
 
     const [c_row, c_col] = pair
-    const cell = data[c_row][c_col]
+    const cell = spreadsheet.data[c_row][c_col]
 
     const [rc_row, rc_col] = rec_call_cell
-    const rcc = data[rc_row][rc_col]
+    const rcc = spreadsheet.data[rc_row][rc_col]
 
     if(cell === undefined) {
       console.log(target, call_cell, cell)
@@ -83,12 +83,12 @@ const get_cell = (lib: LibType, data: Cell[][], identifier_cells: { [key: string
     try {
       return inner_get_cell_raw(target, call_cell, byRender, rec_call_cell)
     } catch(err) {
-      const [row, col] = lookup(target, identifier_cells) as CellId
-      const cell = data[row][col]
+      const [row, col] = lookup(target, spreadsheet.identifier_cells) as CellId
+      const cell = spreadsheet.data[row][col]
       if(err instanceof CircularReferenceError && cell.cycle.length > 0) {
         // don't modify cell.err in any way because circular errors are already handled via the cycle array
         const source_str = generate_id_format(call_cell)
-        const target_str = generate_id_format(lookup(target, identifier_cells) as CellId)
+        const target_str = generate_id_format(lookup(target, spreadsheet.identifier_cells) as CellId)
         if(source_str !== target_str) console.log(`caught circular reference error (${source_str} queried ${target_str})`)
         return 0 // TODO: probably should return something else here
       } else {
@@ -99,7 +99,9 @@ const get_cell = (lib: LibType, data: Cell[][], identifier_cells: { [key: string
   }
 }
 
-const recurse = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId }, cell: Cell, origin_cell: CellId) => {
+const recurse = (lib: LibType, spreadsheet: Pick<Spreadsheet, 'data' | 'identifier_cells'>, cell: Cell, origin_cell: CellId) => {
+  const data = spreadsheet.data
+  const identifier_cells = spreadsheet.identifier_cells
   if(cell.visited) return // already visited; no need to recalculate _vl and do recursing again
   if(cell.cycle.length > 0) {
     cell.visited = true
@@ -111,16 +113,16 @@ const recurse = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]
     const ref = data[ref_id[0]][ref_id[1]]
     if(ref.visited) return // already visited this ref; no need to recalcualte _vl and recurse further
     if(ref.cycle.length > 0) return // if a circular datastructure is detected an error is added. This stops all further recursion at that point
-    recurse(lib, data, identifier_cells, ref, origin_cell)
+    recurse(lib, spreadsheet, ref, origin_cell)
     if(ref.fn) {
-      ref._vl = ref.fn((cell_id: string) => (get_cell(lib, data, identifier_cells)(cell_id, ref._id, false, origin_cell)), lib)
+      ref._vl = ref.fn((cell_id: string) => (get_cell(lib, spreadsheet)(cell_id, ref._id, false, origin_cell)), lib)
       console.log('calculated value for cell ' + generate_id_format(ref._id) + ' (' + ref._vl + ')')
       const maybe_err = check_errors(ref)
       if(maybe_err !== undefined) ref.err = maybe_err
     }
   })
   if(cell.fn && cell.cycle.length === 0) {
-    cell._vl = cell.fn((cell_id: string) => (get_cell(lib, data, identifier_cells)(cell_id, cell._id, false, origin_cell)), lib)
+    cell._vl = cell.fn((cell_id: string) => (get_cell(lib, spreadsheet)(cell_id, cell._id, false, origin_cell)), lib)
     
     console.log('calculated value for cell ' + generate_id_format(cell._id) + ' (' + cell._vl + ')')
     const maybe_err = check_errors(cell)
@@ -141,11 +143,11 @@ const parse_formulas = (identifier_cells: { [key: string]: CellId }, cell: Cell)
   return { ...cell, fn, refs }
 }
 
-const descend = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId }, cell: Cell) => {
-  cell.refs = cell.refs.map((ref: CellId) => typeof(ref) === 'string' ? lookup(ref, identifier_cells) : ref) as CellId[] // transform all refs into the [col, row] format
+const descend = (lib: LibType, spreadsheet: Pick<Spreadsheet, 'data' | 'identifier_cells'>, cell: Cell) => {
+  cell.refs = cell.refs.map((ref: CellId) => typeof(ref) === 'string' ? lookup(ref, spreadsheet.identifier_cells) : ref) as CellId[] // transform all refs into the [col, row] format
   console.warn(cell)
   console.log('-- recurse --')
-  recurse(lib, data, identifier_cells, cell, cell._id)
+  recurse(lib, spreadsheet, cell, cell._id)
   return cell
 }
 
@@ -236,12 +238,13 @@ const compute_changes = (data: Cell[][]) => {
   return data
 }
 
-const transform = (lib: LibType, data: Cell[][], identifier_cells: { [key: string]: CellId }) => {
 
-  const new_data = compute_changes(check_circular(data
-    .map((row, _i)               => row.map(cell => parse_formulas(identifier_cells, cell)))
+const transform = (lib: LibType, spreadsheet: Spreadsheet): Spreadsheet['data'] => {
+
+  const new_data = compute_changes(check_circular(spreadsheet.data
+    .map((row, _i)               => row.map(cell => parse_formulas(spreadsheet.identifier_cells, cell)))
   ))
-    .map((row, _i, current_data) => row.map(cell => descend(lib, current_data, identifier_cells, cell)))
+    .map((row, _i, current_data) => row.map(cell => descend(lib, { data: current_data, identifier_cells: spreadsheet.identifier_cells }, cell)))
     .map((row)                   => row.map(cell => ({...cell, visited: false})))
 
   console.log("transformed", new_data)
@@ -249,12 +252,18 @@ const transform = (lib: LibType, data: Cell[][], identifier_cells: { [key: strin
   return new_data
 }
 
+const transform_spreadsheet = (lib: LibType, spreadsheet: Spreadsheet): Spreadsheet => ({
+  ...spreadsheet,
+  data: transform(lib, spreadsheet)
+})
+
 export default {
   get_cell,
   recurse,
   parse_formulas,
   descend,
   transform,
+  transform_spreadsheet,
   check_errors,
   check_circular_for_cell,
 }
@@ -265,6 +274,7 @@ export {
   parse_formulas,
   descend,
   transform,
+  transform_spreadsheet,
   check_errors,
   check_circular_for_cell,
 }

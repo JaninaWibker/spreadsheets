@@ -5,11 +5,13 @@ import type { Spreadsheet } from './types/Spreadsheet'
 import { CellType } from './types/CellTypes'
 
 import { fillTableEmpty, fillTableIds } from './util/cell_creation'
+import { transform_spreadsheet } from './util/cell_transform'
+import lib from './util/stdlib'
 import parse_file from './util/file-parser'
 
 import './css/index.css'
 
-const file_demo_spreadsheet = parse_file(`
+const file_demo_spreadsheet = transform_spreadsheet(lib, parse_file(`
 ---
 number.rounding: 2
 cell.width: 224
@@ -20,9 +22,9 @@ index_cell.height: 25
 [{ "tp": "S", "vl": "**test2**", "style": { "fontFamily": "Menlo" } }, { "tp": "N", "vl": 5, "name": "thisIsSomeName" } ]
 [{ "tp": "S", "vl": "\`123\`: blub" }, { "tp": "N", "vl": "=A1:A1" } ]
 [ { "tp": "S", "vl": "=pi" }, { "tp": "N", "vl": "=thisIsSomeName" } ]
-[ { "tp": "E" }, { "tp": "S", "vl": "=IF(B1 > 5, \\"true\\", \\"false\\")", "name": "blub" } ]`, 'file_demo_spreadsheet')
+[ { "tp": "E" }, { "tp": "S", "vl": "=IF(B1 > 5, \\"true\\", \\"false\\")", "name": "blub" } ]`, 'file_demo_spreadsheet'))
 
-const demo_spreadsheet: Spreadsheet = {
+const demo_spreadsheet: Spreadsheet = transform_spreadsheet(lib, {
   options: {
     rounding: 2,
     // x_default: [{ width: 120 }],
@@ -45,20 +47,15 @@ const demo_spreadsheet: Spreadsheet = {
   ])),
   name: 'demo_spreadsheet',
   identifier_cells: {}
-}
+})
 
 const App = () => {
-
   const [spreadsheet, setSpreadsheet] = React.useState<Spreadsheet>(demo_spreadsheet)
 
-  const updateCallback = (data: Spreadsheet['data']) => setSpreadsheet({ data: data, options: spreadsheet.options, name: spreadsheet.name, identifier_cells: spreadsheet.identifier_cells })
-  
   return (
     <div>
       <div className="spreadsheet-wrapper">
-        <SpreadsheetComp
-          spreadsheet={spreadsheet}
-          notifyUpdate={updateCallback} />
+        <SpreadsheetComp spreadsheet={spreadsheet} />
       </div>
       <button onClick={() => setSpreadsheet(file_demo_spreadsheet)}>load other spreadsheet</button>
     </div>
