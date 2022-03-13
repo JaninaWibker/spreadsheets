@@ -50,7 +50,7 @@ const App = () => {
 
   const [spreadsheet, setSpreadsheet] = React.useState<Spreadsheet>(demo_spreadsheet)
 
-  const updateCallback = (data: any) => setSpreadsheet({ data: data, options: spreadsheet.options, name: spreadsheet.name })
+  const updateCallback = (data: Spreadsheet['data']) => setSpreadsheet({ data: data, options: spreadsheet.options, name: spreadsheet.name })
   
   return (
     <div>
@@ -59,7 +59,7 @@ const App = () => {
           options={spreadsheet.options}
           data={spreadsheet.data}
           name={spreadsheet.name}
-          cb={updateCallback} />
+          notifyUpdate={updateCallback} />
       </div>
       <button onClick={() => setSpreadsheet(file_demo_spreadsheet)}>load other spreadsheet</button>
     </div>

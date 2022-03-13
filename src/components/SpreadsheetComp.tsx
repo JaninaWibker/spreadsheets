@@ -8,7 +8,7 @@ import { generate_col_id_format, generate_id_format } from '../util/cell_id'
 import { get_cell, transform, check_errors, check_circular_for_cell } from '../util/cell_transform'
 import type { getCellCurried } from '../util/cell_transform'
 import { CellType } from '../types/CellTypes'
-import type { Cell, CellId, SpreadsheetOptions } from '../types/Spreadsheet'
+import type { Cell, CellId, Spreadsheet } from '../types/Spreadsheet'
 import type { AdvancedEntry, Entry } from '../types/ContextMenu'
 import type { Modifiers, ModifiersPlatformAdjusted, FakeMouseEvent } from '../types/Events'
 import platform_detection from '../util/platform-detection'
@@ -36,14 +36,11 @@ document.documentElement.style.setProperty('--border-cell-height-px', BORDER_CEL
 const IDENTIFIER_CELLS: { [key: string]: CellId } = {}
 
 
-interface SpreadsheetProps {
-  data: Cell[][],
-  name: string,
-  options: SpreadsheetOptions,
-  cb: any // TODO: figure out what this is actually used for
+type SpreadsheetProps = Spreadsheet & {
+  notifyUpdate: (data: Spreadsheet['data']) => void
 }
 
-interface SpreadsheetState {
+type SpreadsheetState = {
   selection: {
     start_x: number,
     start_y: number,
@@ -58,20 +55,14 @@ interface SpreadsheetState {
     x: number,
     y: number
   },
-  dimensions: {
-    x: number,
-    y: number
-  },
   context_menu_entries: Entry[],
   context_menu_ref: EventTarget | null
 }
 
-export default class Spreadsheet extends Component<SpreadsheetProps, SpreadsheetState> {
+export default class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetState> {
 
   data: Cell[][]
   name: string
-  columns: number
-  rows: number
   g: getCellCurried
 
   constructor(props: SpreadsheetProps) {
@@ -79,10 +70,8 @@ export default class Spreadsheet extends Component<SpreadsheetProps, Spreadsheet
 
     this.data    = transform(lib, this.props.data, IDENTIFIER_CELLS)
     this.name    = this.props.name
-    this.columns = this.data[0].length
-    this.rows    = this.data.length
 
-    this.props.cb(this.data)
+    this.props.notifyUpdate(this.data)
     this.g = get_cell(lib, this.data, IDENTIFIER_CELLS)
 
     this.state = {
@@ -96,10 +85,6 @@ export default class Spreadsheet extends Component<SpreadsheetProps, Spreadsheet
         x: 0,
         y: 0
       },
-      dimensions: {
-        x: this.data[0].length,
-        y: this.data.length
-      },
       context_menu_entries: [],
       context_menu_ref: null
     }
@@ -109,12 +94,10 @@ export default class Spreadsheet extends Component<SpreadsheetProps, Spreadsheet
     if(this.name !== this.props.name) {
       this.name    = this.props.name
       this.data    = transform(lib, this.props.data, IDENTIFIER_CELLS)
-      this.columns = this.data[0].length
-      this.rows    = this.data.length
 
       this.g = get_cell(lib, this.data, IDENTIFIER_CELLS)
 
-      this.props.cb(this.data)
+      this.props.notifyUpdate(this.data)
 
       this.forceUpdate()
     }
@@ -308,17 +291,27 @@ export default class Spreadsheet extends Component<SpreadsheetProps, Spreadsheet
 
     if(e.buttons === 2 || e.button === 2) return // block right-clicking
 
+    const dimensions = {
+      x: this.data[0].length, // columns
+      y: this.data.length     // rows
+    }
+
     this.setState({
-      selection: handleMouseSelection(this.state.selection, this.state.dimensions, e, cell_id, whole_row_col)
+      selection: handleMouseSelection(this.state.selection, dimensions, e, cell_id, whole_row_col)
     })
   }
 
   handleKeypress = (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", modifiers: Modifiers, preventDefault: () => void) => {
 
+    const dimensions = {
+      x: this.data[0].length, // columns
+      y: this.data.length     // rows
+    }
+
     const { selection, focused } = handleSelectionKeypress(key, {
       ...modifiers,
       mod: platform_detection.isMacOrIos() ? modifiers.meta : modifiers.ctrl // choose appropriate modifier for platform
-    }, convert_to_selection_coordinates(this.state.selection), this.state.dimensions)
+    }, convert_to_selection_coordinates(this.state.selection), dimensions)
 
     preventDefault()
 
@@ -512,23 +505,27 @@ export default class Spreadsheet extends Component<SpreadsheetProps, Spreadsheet
   // I guess almost everyone has seen this kind of weirdness before where it should be enough but like 0.01px more are
   // required for some reason (could be floating point precision but I don't think so, probably just subpixel rendering stuff)
   render() {
+
+    const columns = this.data[0].length
+    const rows = this.data.length
+
     return (
       <div style={{
-        width:  ((this.state.dimensions.x * CELL_WIDTH)  + BORDER_CELL_WIDTH  + 1) + 'px',
-        height: ((this.state.dimensions.y * CELL_HEIGHT) + BORDER_CELL_HEIGHT + 1) + 'px'
+        width:  ((columns * CELL_WIDTH)  + BORDER_CELL_WIDTH  + 1) + 'px',
+        height: ((rows    * CELL_HEIGHT) + BORDER_CELL_HEIGHT + 1) + 'px'
       }}>
         <table className="table">
           <tbody>
             <tr id={'r0l'} key={'r0l'}>
               <BorderCell key={'_._'} id={'_._'} className="" onMouseEvent={this.handleCellMouseEvents} content="/" />
-              {range(this.columns).map(col_num =>
+              {range(columns).map(col_num =>
                   <BorderCell key={'_.' + col_num} id={'_.' + col_num} className="border-top" content={generate_col_id_format(col_num)} onMouseEvent={this.handleCellMouseEvents} />
               )}
             </tr>
-            {range(this.rows).map(row_num =>
+            {range(rows).map(row_num =>
               <tr id={'r' + row_num} key={'r' + row_num}>
                 <BorderCell key={row_num + '._'} id={row_num + '._'} className="border-left" content={String(row_num+1)} onMouseEvent={this.handleCellMouseEvents} />
-                {range(this.columns).map(col_num => this.render_cell(this.data[row_num][col_num]))}
+                {range(columns).map(col_num => this.render_cell(this.data[row_num][col_num]))}
               </tr>
             )}
           </tbody>
