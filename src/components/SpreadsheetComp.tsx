@@ -1,5 +1,4 @@
 import React, { Component } from 'react'
-import '../css/spreadsheet.css'
 
 import { BorderCell, Cell as NormalCell } from './Cell'
 import Selection, { handleKeypress as handleSelectionKeypress, handleMouseSelection, convert_to_selection_coordinates } from './Selection'
@@ -18,6 +17,8 @@ import { Check, Clipboard, Copy, Delete, Scissors, Type, Play } from '../icons/i
 
 import lib from '../util/stdlib'
 
+import '../css/spreadsheet.css'
+
 // constants for width/height of cells
 const CELL_WIDTH = 224 // TODO: apparently this should be configurable via this.props.options (don't know if this is really needed though)
 const CELL_HEIGHT = 25
@@ -35,14 +36,14 @@ document.documentElement.style.setProperty('--border-cell-height-px', BORDER_CEL
 const IDENTIFIER_CELLS: { [key: string]: CellId } = {}
 
 
-interface IProps {
+interface SpreadsheetProps {
   data: Cell[][],
   name: string,
   options: SpreadsheetOptions,
   cb: any // TODO: figure out what this is actually used for
 }
 
-interface IState {
+interface SpreadsheetState {
   selection: {
     start_x: number,
     start_y: number,
@@ -65,7 +66,7 @@ interface IState {
   context_menu_ref: EventTarget | null
 }
 
-export default class Spreadsheet extends Component<IProps, IState> {
+export default class Spreadsheet extends Component<SpreadsheetProps, SpreadsheetState> {
 
   data: Cell[][]
   name: string
@@ -73,7 +74,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
   rows: number
   g: getCellCurried
 
-  constructor(props: IProps) {
+  constructor(props: SpreadsheetProps) {
     super(props)
 
     this.data    = transform(lib, this.props.data, IDENTIFIER_CELLS)
@@ -81,7 +82,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
     this.columns = this.data[0].length
     this.rows    = this.data.length
 
-    this.props.cb(this.data, this.update)
+    this.props.cb(this.data)
     this.g = get_cell(lib, this.data, IDENTIFIER_CELLS)
 
     this.state = {
@@ -104,7 +105,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
     }
   }
 
-  componentDidUpdate(_prevProps: Readonly<IProps> & Readonly<{ children?: React.ReactNode }>) {
+  componentDidUpdate(_prevProps: Readonly<SpreadsheetProps> & Readonly<{ children?: React.ReactNode }>) {
     if(this.name !== this.props.name) {
       this.name    = this.props.name
       this.data    = transform(lib, this.props.data, IDENTIFIER_CELLS)
@@ -113,7 +114,7 @@ export default class Spreadsheet extends Component<IProps, IState> {
 
       this.g = get_cell(lib, this.data, IDENTIFIER_CELLS)
 
-      this.props.cb(this.data, this.update)
+      this.props.cb(this.data)
 
       this.forceUpdate()
     }

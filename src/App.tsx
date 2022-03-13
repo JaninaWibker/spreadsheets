@@ -1,12 +1,13 @@
-import React, { Component } from 'react'
+import React from 'react'
 import SpreadsheetComp from './components/SpreadsheetComp'
-import './css/index.css'
 
 import type { Spreadsheet } from './types/Spreadsheet'
 import { CellType } from './types/CellTypes'
 
 import { fillTableEmpty, fillTableIds } from './util/cell_creation'
 import parse_file from './util/file-parser'
+
+import './css/index.css'
 
 const file_demo_spreadsheet = parse_file(`
 ---
@@ -45,54 +46,24 @@ const demo_spreadsheet: Spreadsheet = {
   name: 'demo_spreadsheet'
 }
 
-interface IProps {
+const App = () => {
 
-}
+  const [spreadsheet, setSpreadsheet] = React.useState<Spreadsheet>(demo_spreadsheet)
 
-interface IState {
-  spreadsheet: Spreadsheet,
-  update?: any,
-  cb: any
-}
-
-
-class App extends Component<IProps, IState> {
-  constructor(props: any) {
-    super(props)
-
-    this.state = {
-      spreadsheet: demo_spreadsheet,
-      cb: (data: any, update: any) => {
-        console.log(data, update)
-        this.setState({
-          spreadsheet: { data: data, options: this.state.spreadsheet.options, name: this.state.spreadsheet.name },
-          update: update
-        })
-      }
-    }
-  }
-
-  loadSpreadsheet(spreadsheet: Spreadsheet) {
-    console.log(spreadsheet)
-    this.setState({
-      spreadsheet: spreadsheet
-    })
-  }
-
-  render() {
-    return (
-      <div>
-        <div className="spreadsheet-wrapper">
-          <SpreadsheetComp
-            options={this.state.spreadsheet.options}
-            data={this.state.spreadsheet.data}
-            name={this.state.spreadsheet.name}
-            cb={this.state.cb} />
-        </div>
-        <button onClick={() => this.loadSpreadsheet(file_demo_spreadsheet)}>load other spreadsheet</button>
+  const updateCallback = (data: any) => setSpreadsheet({ data: data, options: spreadsheet.options, name: spreadsheet.name })
+  
+  return (
+    <div>
+      <div className="spreadsheet-wrapper">
+        <SpreadsheetComp
+          options={spreadsheet.options}
+          data={spreadsheet.data}
+          name={spreadsheet.name}
+          cb={updateCallback} />
       </div>
-    )
-  }
+      <button onClick={() => setSpreadsheet(file_demo_spreadsheet)}>load other spreadsheet</button>
+    </div>
+  )
 }
 
 export default App
