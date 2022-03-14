@@ -34,6 +34,22 @@ document.documentElement.style.setProperty('--cell-height-px', CELL_HEIGHT + 'px
 document.documentElement.style.setProperty('--border-cell-width-px', BORDER_CELL_WIDTH + 'px');
 document.documentElement.style.setProperty('--border-cell-height-px', BORDER_CELL_HEIGHT + 'px');
 
+
+const update = (spreadsheet: Spreadsheet, cell_id: CellId) => {
+  const [col, row] = cell_id
+  const cell = spreadsheet.data[col][row]
+
+  // mark cell as not visited, meaning invalidate its 'cache'
+  // this gets picked up by get_cell which will then recompute the value of the cell
+  spreadsheet.data[col][row].visited = false
+
+  if(cell.changes) {
+    cell.changes // filter out cells which are also in the same cycle as the current cell // TODO: does this filter out too much?; should they be updated at least once?
+      .filter(cell_id => !cell.cycle.find(cell_id_cycle => compare_cell_ids(cell_id, cell_id_cycle)))
+      .forEach(cell_id => update(spreadsheet, cell_id))
+    }
+}
+
 const handleCellChange = (spreadsheet: Spreadsheet, cell: Cell, value: string) => {
   const [row, col] = cell._id
 
@@ -168,7 +184,7 @@ const handleCellChange = (spreadsheet: Spreadsheet, cell: Cell, value: string) =
 
     const maybe_err = check_errors(cell)
     if(maybe_err !== undefined) cell.err = maybe_err
-    
+
     cell.changes
       .filter(cell_id => !cell.cycle.find(cell_id_cycle => compare_cell_ids(cell_id, cell_id_cycle)))
       .map(([row, col]) => recurse(spreadsheet.data[row][col], self))
@@ -200,7 +216,7 @@ type SpreadsheetState = {
     y: number
   },
   context_menu_entries: Entry[],
-  context_menu_ref: EventTarget | null
+  context_menu_ref: Element | null
 }
 
 export default class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetState> {
@@ -254,23 +270,8 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
     }
   }
 
-  private _update = (cell_id: CellId) => {
-    const [col, row] = cell_id
-    const cell = this.spreadsheet.data[col][row]
-
-    // mark cell as not visited, meaning invalidate its 'cache'
-    // this gets picked up by get_cell which will then recompute the value of the cell
-    this.spreadsheet.data[col][row].visited = false
-    
-    if(cell.changes) {
-      cell.changes // filter out cells which are also in the same cycle as the current cell // TODO: does this filter out too much?; should they be updated at least once?
-        .filter(cell_id => !cell.cycle.find(cell_id_cycle => compare_cell_ids(cell_id, cell_id_cycle)))
-        .forEach(this._update)
-      }
-  }
-
   private update = (cell_id: CellId) => {
-    this._update(cell_id)
+    update(this.spreadsheet, cell_id)
     this.forceUpdate()
   }
 
@@ -398,7 +399,7 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
 
     e.preventDefault()
 
-    this.setState({ context_menu_ref: e.target })
+    this.setState({ context_menu_ref: e.target as Element })
 
     let cells: CellId[][]
 
@@ -529,7 +530,7 @@ export default class SpreadsheetComp extends Component<SpreadsheetProps, Spreads
             <tr id={'r0l'} key={'r0l'}>
               <BorderCell key={'_._'} id={'_._'} className="" onMouseEvent={this.handleCellMouseEvents} content="/" />
               {range(columns).map(col_num =>
-                  <BorderCell key={'_.' + col_num} id={'_.' + col_num} className="border-top" content={generate_col_id_format(col_num)} onMouseEvent={this.handleCellMouseEvents} />
+                <BorderCell key={'_.' + col_num} id={'_.' + col_num} className="border-top" content={generate_col_id_format(col_num)} onMouseEvent={this.handleCellMouseEvents} />
               )}
             </tr>
             {range(rows).map(row_num =>

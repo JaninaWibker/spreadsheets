@@ -1,47 +1,49 @@
 import React from 'react'
-import Popover from '../Popover'
+import Popover from './Popover'
 import SimpleEntry from './SimpleEntry'
 import SimpleSubmenu from './SimpleSubmenu'
 
-import type { AdvancedEntry as AdvancedEntryT, AdvancedSubmenuEntry, Entry as EntryT } from '../../types/ContextMenu'
+import type { AdvancedEntry as AdvancedEntryT, AdvancedSubmenuEntry, Entry as EntryT, EntryProps, MenuProps } from '../../types/ContextMenu'
 
 import '../../css/contextmenu.css'
 
-export type RegisterSubmenu = (submenu: { is_open: boolean, close: () => void }) => number
-export type OpenSubmenu = (idx: number, is_open: boolean) => void
-
-export type MenuProps<SubmenuEntry> = {
-  entry: SubmenuEntry,
-  close: () => void,
-  register_submenu: (submenu: { is_open: boolean, close: () => void }) => number,
-  notify_open_submenu: (idx: number, is_open: boolean) => void
-}
-
-export type EntryProps = {
-  entry: EntryT,
-  close: () => void,
-  register_submenu: RegisterSubmenu,
-  open_submenu: OpenSubmenu
-}
-
-const AdvancedEntry = ({ entry, close } : { entry: AdvancedEntryT, close: () => void }) => entry.component(entry, close)
+const AdvancedEntry = ({ entry, close } : EntryProps<AdvancedEntryT>) => entry.component(entry, close)
 
 const AdvancedSubmenu = ({ entry, close, register_submenu, notify_open_submenu }: MenuProps<AdvancedSubmenuEntry>) => entry.component(entry, close, register_submenu, notify_open_submenu)
 
-const Entry = ({ entry, close, register_submenu, open_submenu }: EntryProps) => entry.submenu
+const Entry = ({ entry, close, register_submenu, notify_open_submenu }: MenuProps<EntryT>) => entry.submenu
   ? entry.simple
-    ? <SimpleSubmenu   entry={entry} close={close} register_submenu={register_submenu} notify_open_submenu={open_submenu} />
-    : <AdvancedSubmenu entry={entry} close={close} register_submenu={register_submenu} notify_open_submenu={open_submenu} />
+    ? <SimpleSubmenu   entry={entry} close={close} register_submenu={register_submenu} notify_open_submenu={notify_open_submenu} />
+    : <AdvancedSubmenu entry={entry} close={close} register_submenu={register_submenu} notify_open_submenu={notify_open_submenu} />
   : entry.simple
     ? <SimpleEntry   entry={entry} close={close} />
     : <AdvancedEntry entry={entry} close={close} />
 
 type ContextMenuProps = {
-  referenceElement: any, // TODO: find out actual type and figure out to do refs well again
+  /**
+   * The element next to where the context menu should be placed,
+   * Either supply a VirtualElement ([Popper.JS concept](https://popper.js.org/react-popper/v2/virtual-elements/), an object with getBoundingClientRect function) or a normal Element.
+   */
+  referenceElement: Parameters<(typeof Popover)>[0]['referenceElement'],
+  /**
+   * List of menu entries
+   */
   menu: EntryT[],
+  /**
+   * Called on close
+   */
   close: () => void
+  /**
+   * Placement of the context menu relative to `referenceElement`
+   */
   placement?: Parameters<typeof Popover>[0]['placement'],
+  /**
+   * Callback for mouse enter
+   */
   onMouseEnter?: (e: React.MouseEvent) => void,
+  /**
+   * Callback for mouse leave
+   */
   onMouseLeave?: (e: React.MouseEvent) => void,
 }
 
@@ -71,7 +73,7 @@ const ContextMenu = ({ referenceElement, menu, close, placement, onMouseEnter, o
             entry={entry}
             close={close}
             register_submenu={register_submenu}
-            open_submenu={open_submenu}
+            notify_open_submenu={open_submenu}
           />)}
         </div>
       </div>

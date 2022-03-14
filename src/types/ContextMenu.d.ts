@@ -40,3 +40,15 @@ export type AdvancedSubmenuEntry = {
 }
 
 export type Entry = SimpleEntry | AdvancedEntry | SubmenuEntry
+
+export type MenuProps<SubmenuEntry> = {
+  entry: SubmenuEntry,
+  close: () => void,
+  register_submenu: (submenu: { is_open: boolean, close: () => void }) => number,
+  notify_open_submenu: (idx: number, is_open: boolean) => void
+}
+
+export type EntryProps<EntryType = Entry> = {
+  entry: EntryType,
+  close: () => void
+}

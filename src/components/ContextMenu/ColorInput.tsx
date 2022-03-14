@@ -1,7 +1,7 @@
-import React, { Component, useState, useRef } from 'react'
+import React, { Component } from 'react'
 import { ChromePicker, ColorResult } from 'react-color'
 import Popover from './Popover'
-import { verify_color } from '../util/css-colors'
+import { verify_color } from '../../util/css-colors'
 
 type ColorInputProps = {
   onChange?: (color: ColorResult | string, valid: boolean) => void
@@ -51,10 +51,16 @@ class ColorInput<Props extends ColorInputProps> extends Component<Props, ColorIn
     console.log('toggle to: ' + new_value)
 
     if(this.props.onOpenOrClose) this.props.onOpenOrClose(new_value)
-      
+
     this.setState({
       is_open: new_value
     }, () => !new_value && this.props.onChange && this.props.onChange(this.state.color as string, this.state.color ? verify_color(this.state.color as string) : false))
+  }
+
+  componentWillUnmount() {
+    if(this.props.onChange) {
+      this.props.onChange(this.state.color as string, this.state.color ? verify_color(this.state.color as string) : false)
+    }
   }
 }
 

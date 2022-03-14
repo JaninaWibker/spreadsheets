@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { usePopper } from 'react-popper'
-import type { Modifier } from 'react-popper'
+import type { Modifier, PopperChildrenProps, PopperProps } from 'react-popper'
 
 const backtrackFindClass = (node: HTMLElement, className: string): boolean => {
   if(node.classList.contains(className)) return true
@@ -22,11 +22,38 @@ const useOutsideDetecter = (ref: HTMLElement | null, cb: () => void) => useEffec
 }, [ref])
 
 type PopoverProps = {
-  referenceElement: any, // TODO: find out actual type and figure out to do refs well again
+  /**
+   * Either supply a VirtualElement ([Popper.JS concept](https://popper.js.org/react-popper/v2/virtual-elements/), an object with getBoundingClientRect function)
+   * or a normal Element.
+   * You can use:
+   * ```ts
+   * const popper_ref = useRef<HTMLDivElement>(null)
+   *
+   * <div ref={popper_ref}>
+   *   <Popover referenceElement={popper_ref.current} />
+   * </div>
+   * ```
+   */
+  referenceElement: NonNullable<PopperProps<any>['referenceElement']> | null,
+  /**
+   * automatically move focus to the Popper element after creation
+   */
   auto_focus?: boolean,
-  placement?: | 'auto' | 'auto-start' | 'auto-end' | 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'right' | 'right-start' | 'right-end' | 'left' | 'left-start' | 'left-end',
+  /**
+   * Where to place the Popper element
+   */
+  placement?: PopperChildrenProps['placement'],
+  /**
+   * Called on close
+   */
   close: () => void,
+  /**
+   * [Popper.js modifiers](https://popper.js.org/docs/v2/modifiers/)
+   */
   modifiers?: readonly Partial<Modifier<unknown, object>>[]
+  /**
+   * The content of the popover to display
+   */
   children: React.ReactNode,
 }
 

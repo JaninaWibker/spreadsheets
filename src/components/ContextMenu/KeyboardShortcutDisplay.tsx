@@ -1,8 +1,8 @@
 import React from 'react'
 
-import { isMacOrIos } from '../util/platform-detection'
+import { isMacOrIos } from '../../util/platform-detection'
 
-import '../css/keyboardshortcutdisplay.css'
+import '../../css/keyboardshortcutdisplay.css'
 
 // const cmdKeyIsMod = /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)
 

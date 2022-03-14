@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react'
 
-import { ColorInputSmall } from '../ColorInput'
+import { ColorInputSmall } from './ColorInput'
 
 import type { ColorResult } from 'react-color'
 

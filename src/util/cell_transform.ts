@@ -100,8 +100,6 @@ const get_cell = (lib: LibType, spreadsheet: Pick<Spreadsheet, 'data' | 'identif
 }
 
 const recurse = (lib: LibType, spreadsheet: Pick<Spreadsheet, 'data' | 'identifier_cells'>, cell: Cell, origin_cell: CellId) => {
-  const data = spreadsheet.data
-  const identifier_cells = spreadsheet.identifier_cells
   if(cell.visited) return // already visited; no need to recalculate _vl and do recursing again
   if(cell.cycle.length > 0) {
     cell.visited = true
@@ -109,8 +107,8 @@ const recurse = (lib: LibType, spreadsheet: Pick<Spreadsheet, 'data' | 'identifi
   }
   console.log('calling recurse for ' + generate_id_format(cell._id))
   cell.refs.forEach(ref_id => {
-    console.log(ref_id, data[ref_id[0]])
-    const ref = data[ref_id[0]][ref_id[1]]
+    console.log(ref_id, spreadsheet.data[ref_id[0]])
+    const ref = spreadsheet.data[ref_id[0]][ref_id[1]]
     if(ref.visited) return // already visited this ref; no need to recalcualte _vl and recurse further
     if(ref.cycle.length > 0) return // if a circular datastructure is detected an error is added. This stops all further recursion at that point
     recurse(lib, spreadsheet, ref, origin_cell)
