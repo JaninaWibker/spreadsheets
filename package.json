@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "vite --port 3000",
+    "dev": "vite",
     "build": "tsc && vite build",
     "serve": "vite preview",
     "nearley-excel": "nearleyc src/util/parser/excel.ne -o src/util/parser/excel.js",
@@ -23,10 +23,11 @@
     "@types/react": "^18.0.17",
     "@types/react-color": "^3.0.6",
     "@types/react-dom": "^18.0.6",
+    "@vitejs/plugin-react": "^2.0.1",
     "moo": "^0.5.1",
     "nearley": "^2.20.1",
-    "vite": "^3.0.9",
-    "typescript": "^4.7.4"
+    "typescript": "^4.7.4",
+    "vite": "^3.0.9"
   },
   "browserslist": {
     "production": [

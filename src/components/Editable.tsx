@@ -1,9 +1,9 @@
-import React, { Component } from 'react'
+import React, { Component, PropsWithChildren } from 'react'
 import '../css/editable.css'
 
 import { Modifiers } from '../types/Events'
 
-interface IProps {
+interface EditableProps {
   raw_data?: string,
   text?: string,
   pretty_text?: string,
@@ -13,17 +13,17 @@ interface IProps {
   onArrowKeyEvent?: (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", modifierse: Modifiers, preventDefault: () => any) => any
 }
 
-interface IState {
+interface EditableState {
   editing: boolean,
   old_text: string,
   text: string,
   pretty_text: string | React.ReactNode
 }
 
-export default class Editable extends Component<IProps, IState> {
+export default class Editable extends Component<PropsWithChildren<EditableProps>, EditableState> {
   /**
    * Render text and start editing it by simply double clicking
-   * 
+   *
    * @remarks
    * There are mutliple ways to use this component; those include just passing text which is rendered and can be edited;
    * rendering something different from what can be edited (the rendered text is most likely derived from the editable text)
@@ -41,19 +41,19 @@ export default class Editable extends Component<IProps, IState> {
    * @param cb - Just a callback that gets fired everytime the text is edited (when the user *finishes* editing the text to be precise)
    * @param onArrowKeyEvent - this is a special event listener which fires when the arrow keys are pressed **while not editing**. This can
    *                          be useful in some cases. Besides the pressed key information about which modifiers were held down is also sent along.
-   * 
+   *
    * @param isFocused - **NOT IMPLEMENTED (YET?)**
    */
 
   el: HTMLInputElement | null = null
 
-  constructor(props: Readonly<IProps> & Readonly<{ children?: React.ReactNode }>) {
+  constructor(props: Readonly<PropsWithChildren<EditableProps>>) {
     super(props)
 
     console.log(this.props.children)
 
     const text = this.props.raw_data !== undefined
-      ? this.props.raw_data 
+      ? this.props.raw_data
       : this.props.text !== undefined
         ? this.props.text
         : this.props.children!.toString()
@@ -98,7 +98,7 @@ export default class Editable extends Component<IProps, IState> {
   // }
 
   // * INFO: only about 2-5% of calls to this method result actually qualify for updating the state and this function is called **A LOT**. This means that correctly determining whether to update or not is **REALLY IMPORTANT** for performance.
-  UNSAFE_componentWillReceiveProps(nextProps: Readonly<IProps> & Readonly<{ children?: React.ReactNode }>) { // TODO: replace componentWillReceiveProps with getDerivedStateFromProps (https://hackernoon.com/replacing-componentwillreceiveprops-with-getderivedstatefromprops-c3956f7ce607)
+  UNSAFE_componentWillReceiveProps(nextProps: Readonly<EditableProps> & Readonly<{ children?: React.ReactNode }>) { // TODO: replace componentWillReceiveProps with getDerivedStateFromProps (https://hackernoon.com/replacing-componentwillreceiveprops-with-getderivedstatefromprops-c3956f7ce607)
 
     // use this to update the state; this ensures that logging (if not commented out) is consistent across execution paths. All of the state changes also looked almost completely similar so this reduces redundency
     const update_state = (old_text: string, text: string, pretty_text: string | React.ReactNode) => {

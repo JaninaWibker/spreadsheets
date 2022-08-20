@@ -168,7 +168,7 @@ const handleCellChange = (spreadsheet: Spreadsheet, cell: Cell, value: string) =
       cell._vl = cell.fn!((cell_id: string) => (get_cell(lib, spreadsheet)(cell_id, cell._id, false, spreadsheet.data[row][col]._id)), lib)
       console.log(generate_id_format(cell._id) + ' updated to ' + cell._vl)
     } catch(err) {
-      cell.err = err
+      cell.err = err as Error
     }
 
     const maybe_err = check_errors(cell)
