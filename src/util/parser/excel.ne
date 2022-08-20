@@ -1,7 +1,8 @@
 @{% /* eslint-disable */ %}
+@preprocessor module
 
 @{%
-const lexer = require('./lexer');
+import lexer from './lexer'
 
 
 %}

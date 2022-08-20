@@ -4,8 +4,6 @@
  * https://github.com/chjj/marked
  */
 
-;(function() {
-
 /**
  * Inline-Level Grammar
  */
@@ -173,15 +171,16 @@ marked.defaults = {
  * Expose
  */
 
+const inlineLexer = InlineLexer.output
+
 marked.Renderer = Renderer;
 
 marked.InlineLexer = InlineLexer;
-marked.inlineLexer = InlineLexer.output;
+marked.inlineLexer = inlineLexer;
 
-if (typeof module !== 'undefined' && typeof exports === 'object')
-  module.exports = marked;
-else
-  this.marked = marked;
-}).call(function() {
-  return this || (typeof window !== 'undefined' ? window : global);
-}());
+export {
+  Renderer,
+  InlineLexer,
+  inlineLexer
+}
+export default marked

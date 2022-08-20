@@ -1,10 +1,8 @@
-// Generated automatically by nearley, version 2.19.0
+// Generated automatically by nearley, version 2.19.6
 // http://github.com/Hardmath123/nearley
-(function () {
 function id(x) { return x[0]; }
-var grammar = {
-    Lexer: undefined,
-    ParserRules: [
+let Lexer = undefined;
+let ParserRules = [
     {"name": "string", "symbols": ["dqstring"], "postprocess": id},
     {"name": "string", "symbols": ["sqstring"], "postprocess": id},
     {"name": "string", "symbols": ["btstring"], "postprocess": id},
@@ -25,14 +23,8 @@ var grammar = {
     {"name": "sstrchar", "symbols": [{"literal":"\\"}, "strescape"], "postprocess": d => JSON.parse('"'+d.join('')+'"')},
     {"name": "sstrchar$string$1", "symbols": [{"literal":"\\"}, {"literal":"'"}], "postprocess": function joiner(d) {return d.join('');}},
     {"name": "sstrchar", "symbols": ["sstrchar$string$1"], "postprocess": () => "'"},
-    {"name": "strescape", "symbols": [/["\\\/bfnrt]/], "postprocess": id},
+    {"name": "strescape", "symbols": [/["\\/bfnrt]/], "postprocess": id},
     {"name": "strescape", "symbols": [{"literal":"u"}, /[a-fA-F0-9]/, /[a-fA-F0-9]/, /[a-fA-F0-9]/, /[a-fA-F0-9]/], "postprocess": d => d.join("")}
-]
-  , ParserStart: "string"
-}
-if (typeof module !== 'undefined'&& typeof module.exports !== 'undefined') {
-   module.exports = grammar;
-} else {
-   window.grammar = grammar;
-}
-})();
+];
+let ParserStart = "string";
+export default { Lexer, ParserRules, ParserStart };

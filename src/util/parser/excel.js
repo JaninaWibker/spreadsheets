@@ -1,15 +1,13 @@
 // Generated automatically by nearley, version 2.19.6
 // http://github.com/Hardmath123/nearley
-(function () {
 function id(x) { return x[0]; }
  /* eslint-disable */ 
 
-const lexer = require('./lexer');
+import lexer from './lexer'
 
 
-var grammar = {
-    Lexer: lexer,
-    ParserRules: [
+let Lexer = lexer;
+let ParserRules = [
     {"name": "start", "symbols": ["l_or"], "postprocess": id},
     {"name": "primitive", "symbols": ["boolean"], "postprocess": ([fst]) => ({ type: 'boolean', val: fst })},
     {"name": "primitive", "symbols": ["number"], "postprocess": ([fst]) => ({ type: 'number', val: fst })},
@@ -77,12 +75,6 @@ var grammar = {
     {"name": "value", "symbols": ["id"], "postprocess": id},
     {"name": "value", "symbols": ["primitive"], "postprocess": id},
     {"name": "id", "symbols": [(lexer.has("id") ? {type: "id"} : id)], "postprocess": ([fst], loc) => ({ type: fst.text === 'it' ? 'it_identifier' : 'identifier',  val: fst.text, loc: loc })}
-]
-  , ParserStart: "start"
-}
-if (typeof module !== 'undefined'&& typeof module.exports !== 'undefined') {
-   module.exports = grammar;
-} else {
-   window.grammar = grammar;
-}
-})();
+];
+let ParserStart = "start";
+export default { Lexer, ParserRules, ParserStart };

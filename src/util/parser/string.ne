@@ -1,4 +1,5 @@
 # @lexer lexer
+@preprocessor module
 
 # sqstring -> %sqstring {% ([raw_str]) => raw_str.text %}
 # dqstring -> %dqstring {% ([raw_str]) => raw_str.text %}

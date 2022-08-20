@@ -1,10 +1,10 @@
-const moo = require('moo')
+import moo from 'moo'
 
 const lexer = moo.compile({
 
   // whitespace
   ws: /[ \t\v\f]/,
-  
+
   // operators
   comma_op: ',',
   or_op: '||',
@@ -49,4 +49,4 @@ lexer.next = (next => () => {
   return tok;
 })(lexer.next);
 
-module.exports = lexer
+export default lexer
