@@ -42,14 +42,14 @@ const lib = {
   log10: Math.log10,
   log: (base: number, value: number) => Math.log(value) / Math.log(base),
 
-  max: format_arguments.bind(this, (arr: number[]) => Math.max(...arr)),
-  min: format_arguments.bind(this, (arr: number[]) => Math.min(...arr)),
-  sum: format_arguments.bind(this, (arr: number[]) => {
+  max: (...args: any[]) => format_arguments((arr: number[]) => Math.max(...arr), ...args),
+  min: (...args: any[]) => format_arguments((arr: number[]) => Math.min(...arr), ...args),
+  sum: (...args: any[]) => format_arguments((arr: number[]) => {
     let sum = 0;
     for(let i = 0; i < arr.length; i++)
       sum += arr[i]
     return sum
-  }),
+  }, ...args),
   sumif: (arr: (number | string)[], pred: ((it: number | string) => boolean)=(() => true)) => {
     let sum = 0
     for(let i = 0; i < arr.length; i++)
@@ -58,7 +58,7 @@ const lib = {
       }
     return sum
   },
-  count: format_arguments.bind(this, (arr: (number | string)[]) => arr.length),
+  count: (...args: any[]) => format_arguments((arr: (number | string)[]) => arr.length, ...args),
   countif: (arr: (number | string)[], pred: ((it: number | string) => boolean)=(() => true)) => {
     console.log(arr, pred)
     let count = 0
@@ -68,10 +68,10 @@ const lib = {
       }
     return count
   },
-  avg: format_arguments.bind(this, (arr: number[]) => lib.sum(arr) / arr.length),
-  concat: format_arguments.bind(this, (arr: (string | number)[], delim: string = '') => {
+  avg: (...args: any[]) => format_arguments((arr: number[]) => lib.sum(arr) / arr.length, ...args),
+  concat: (...args: any[]) => format_arguments((arr: (string | number)[], delim: string = '') => {
     return arr.join(delim)
-  }),
+  }, ...args),
   concatenate: (...args: any) => lib.concat(...args),
   proper: (text: string): string => text
     .toLowerCase()
