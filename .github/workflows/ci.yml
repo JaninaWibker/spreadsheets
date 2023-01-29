@@ -18,17 +18,17 @@ jobs:
           version: 7
           run_install: false
 
-      - name: First, lint everything
-        run: pnpm --filter "*" lint
-
-      - name: Second, install dependencies of library
+      - name: First, install dependencies of library
         run: pnpm --filter "lib" install
 
-      - name: Third, build library
+      - name: Second, build library
         run: pnpm --filter "lib" build
 
-      - name: Fourth, install library
+      - name: Third, install library
         run: pnpm --filter "demo" install
 
-      - name: Fifth, build demo
+      - name: Fourth, build demo
         run: pnpm --filter "demo" build
+
+      - name: Fifth, lint everything
+        run: pnpm --filter "*" lint
