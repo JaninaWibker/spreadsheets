@@ -3,13 +3,13 @@ import { usePopper } from 'react-popper'
 import type { Modifier, PopperChildrenProps, PopperProps } from 'react-popper'
 
 const backtrackFindClass = (node: HTMLElement, className: string): boolean => {
-  if(node.classList.contains(className)) return true
+  if (node.classList.contains(className)) return true
   else return node.parentElement !== null && backtrackFindClass(node.parentElement, className)
 }
 
 const useOutsideDetecter = (ref: HTMLElement | null, cb: () => void) => useEffect(() => {
   const handleClickOutside = (evt: MouseEvent) => {
-    if(ref && !ref.contains(evt.target as Node) && !backtrackFindClass(evt.target as HTMLElement, 'clickoutside-skip')) {
+    if (ref && !ref.contains(evt.target as Node) && !backtrackFindClass(evt.target as HTMLElement, 'clickoutside-skip')) {
       console.log('click outside', ref, evt.target)
       cb()
     }
@@ -50,29 +50,29 @@ type PopoverProps = {
   /**
    * [Popper.js modifiers](https://popper.js.org/docs/v2/modifiers/)
    */
-  modifiers?: readonly Partial<Modifier<unknown, object>>[]
+  modifiers?: readonly Partial<Modifier<unknown, object>>[],
   /**
    * The content of the popover to display
    */
-  children: React.ReactNode,
+  children: React.ReactNode
 }
 
-const Popover = ({ referenceElement, close, placement='auto', auto_focus=false, children, modifiers=[] } : PopoverProps) => {
-
+const Popover = ({ referenceElement, close, placement = 'auto', auto_focus = false, children, modifiers = [] } : PopoverProps) => {
   const [popperElement, setPopperElement] = useState<HTMLElement | null>(null)
   const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null)
-  const {styles, attributes} = usePopper(referenceElement, popperElement, {
+  const { styles, attributes } = usePopper(referenceElement, popperElement, {
     modifiers: [
       { name: 'arrow', options: { element: arrowElement } },
       { name: 'preventOverflow', options: { boundary: window.document.documentElement, altBoundary: true } },
       ...modifiers
     ],
-    placement: placement
+    placement
   })
 
   useOutsideDetecter(popperElement, close)
 
-  if(popperElement && auto_focus) {
+  if (popperElement && auto_focus) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     popperElement.children[0].focus()
   }

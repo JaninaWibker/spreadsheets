@@ -14,8 +14,7 @@ export type ColorPickerMenuEntryProps = {
   notify_open_submenu?: (idx: number, is_open: boolean) => void
 }
 
-const ColorPickerMenuEntry = ({ color=undefined, text="Color", cb, close, register_submenu=() => -1, notify_open_submenu=() => {} }: ColorPickerMenuEntryProps) => {
-
+const ColorPickerMenuEntry = ({ color = undefined, text = 'Color', cb, close, register_submenu = () => -1, notify_open_submenu = () => undefined }: ColorPickerMenuEntryProps) => {
   const [current_color, state_set_color] = useState(color)
   const list_item_ref = useRef(null)
 
@@ -24,9 +23,9 @@ const ColorPickerMenuEntry = ({ color=undefined, text="Color", cb, close, regist
   const submenu_id = register_submenu({ is_open: false, close: () => force_close() })
 
   const set_color = (color: ColorResult | string, valid: boolean) => {
-    const hex_color = !color || typeof(color) === 'string' ? color : color.hex
+    const hex_color = !color || typeof color === 'string' ? color : color.hex
     state_set_color(hex_color)
-    if(valid) {
+    if (valid) {
       cb(hex_color)
     }
   }
@@ -38,7 +37,7 @@ const ColorPickerMenuEntry = ({ color=undefined, text="Color", cb, close, regist
         <ColorInputSmall
           onChange={set_color}
           onOpenOrClose={(is_open: boolean) => notify_open_submenu(submenu_id, is_open)}
-          getForceClose={(close: () => void) => force_close = close}
+          getForceClose={(close: () => void) => { force_close = close }}
           error={false}
           value={current_color}
           default_value="transparent"

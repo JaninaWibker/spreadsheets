@@ -4,9 +4,8 @@ import KeyboardShortcutDisplay from './KeyboardShortcutDisplay'
 import type { EntryProps, SimpleEntry as SimpleEntryT } from '../../types/ContextMenu'
 
 const SimpleEntry = ({ entry, close }: EntryProps<SimpleEntryT>) => {
-
   const callback = () => {
-    if(entry.action) entry.action()
+    if (entry.action) entry.action()
     close()
   }
 
@@ -20,9 +19,11 @@ const SimpleEntry = ({ entry, close }: EntryProps<SimpleEntryT>) => {
           <div className="text">{entry.name}</div>
         </div>
         {entry.shortcut
-          ? <div className="shortcut_wrapper">
-            <KeyboardShortcutDisplay keys={entry.shortcut} theme_base="light" simple={true} />
-          </div>
+          ? (
+              <div className="shortcut_wrapper">
+                <KeyboardShortcutDisplay keys={entry.shortcut} theme_base="light" simple={true} />
+              </div>
+            )
           : null}
       </div>
     </div>

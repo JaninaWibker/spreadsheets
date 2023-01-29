@@ -23,7 +23,7 @@ export type SimpleSubmenuEntry = {
   name: string,
   expand_icon?: JSX.Element,
   action?: () => any,
-  menu: Entry[],
+  menu: Entry[]
 }
 
 export type AdvancedSubmenuEntry = {

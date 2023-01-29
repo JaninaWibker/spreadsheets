@@ -5,12 +5,12 @@ import ContextMenu from './ContextMenu'
 import type { MenuProps, SimpleSubmenuEntry } from '../../types/ContextMenu'
 
 const SimpleSubmenu = ({ entry, close, register_submenu, notify_open_submenu }: MenuProps<SimpleSubmenuEntry>) => {
-
   const [is_submenu_open, set_submenu_open] = useState(false)
   const [entered_submenu, set_entered_submenu] = useState(false)
 
   const on_submenu_open = (bool: boolean) => {
-    if(bool && entry.action) entry.action()
+    if (bool && entry.action) entry.action()
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     notify_open_submenu(submenu_id, bool)
     set_submenu_open(bool)
   }
@@ -18,8 +18,8 @@ const SimpleSubmenu = ({ entry, close, register_submenu, notify_open_submenu }: 
   const submenu_id = register_submenu({ is_open: false, close: () => on_submenu_open(false) })
 
   const toggle_submenu = () => on_submenu_open(!is_submenu_open)
-  const open_submenu   = () => on_submenu_open(true)
-  const close_submenu  = () => setTimeout(() => entered_submenu || on_submenu_open(false), 200)
+  const open_submenu = () => on_submenu_open(true)
+  const close_submenu = () => setTimeout(() => entered_submenu || on_submenu_open(false), 200)
 
   const list_item_ref = useRef<HTMLDivElement>(null)
 
@@ -34,9 +34,11 @@ const SimpleSubmenu = ({ entry, close, register_submenu, notify_open_submenu }: 
         </div>
       </div>
       {is_submenu_open
-        ? <Popover referenceElement={list_item_ref.current} close={close_submenu} modifiers={[{ name: 'offset', options: { offset: [-45, 0], } }]}>
-            <ContextMenu referenceElement={list_item_ref.current} menu={entry.menu} close={close} placement="top-start" onMouseEnter={() => set_entered_submenu(true)} onMouseLeave={() => { set_entered_submenu(false); set_submenu_open(false); }} />
-          </Popover>
+        ? (
+            <Popover referenceElement={list_item_ref.current} close={close_submenu} modifiers={[{ name: 'offset', options: { offset: [-45, 0] } }]}>
+              <ContextMenu referenceElement={list_item_ref.current} menu={entry.menu} close={close} placement="top-start" onMouseEnter={() => set_entered_submenu(true)} onMouseLeave={() => { set_entered_submenu(false); set_submenu_open(false) }} />
+            </Popover>
+          )
         : null}
     </div>
   )

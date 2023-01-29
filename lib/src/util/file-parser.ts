@@ -1,6 +1,6 @@
 import { fillTableEmpty, fillTableIds } from './cell_creation'
 import { CellType } from '../types/CellTypes'
-import { Spreadsheet, SpreadsheetOptions, Cell } from '../types/Spreadsheet'
+import type { Spreadsheet, SpreadsheetOptions, Cell } from '../types/Spreadsheet'
 
 type rawOptions = {
   'number.rounding': string,
@@ -8,20 +8,20 @@ type rawOptions = {
 }
 
 type rawData = {
-  tp: "S" | "N" | "E",
+  tp: 'S' | 'N' | 'E',
   vl: string | number,
   style?: object,
   name?: string
 }
 
 const parse_options = (str: string): rawOptions => (str
-    .split('\n')
-    .filter((line: string) => !!line)
-    .map((line: string) => line.split(':') as [string, string])
-    .reduce((acc: { [key: string]: string }, [key, value]: [string, string]) => {
-      acc[key.trim()] = value.trim()
-      return acc
-    }, {})) as rawOptions
+  .split('\n')
+  .filter((line: string) => !!line)
+  .map((line: string) => line.split(':') as [string, string])
+  .reduce((acc: { [key: string]: string }, [key, value]: [string, string]) => {
+    acc[key.trim()] = value.trim()
+    return acc
+  }, {})) as rawOptions
 
 const transform_options = (raw_options: rawOptions): SpreadsheetOptions => {
   const rtn: {rounding: number, date_format: string} = {
@@ -29,17 +29,25 @@ const transform_options = (raw_options: rawOptions): SpreadsheetOptions => {
     date_format: 'DD/MM/YYYY'
   }
 
-  if(raw_options['number.rounding'] !== undefined) {
+  if (raw_options['number.rounding'] !== undefined) {
     rtn.rounding = +raw_options['number.rounding']
   }
 
-  if(raw_options['date.format'] !== undefined) {
+  if (raw_options['date.format'] !== undefined) {
     rtn.date_format = raw_options['date.format']
   }
 
   // TODO: add more things here
 
   return rtn
+}
+
+const convert_type = (type: 'S' | 'N' | 'E'): CellType => {
+  switch (type) {
+    case 'S': return CellType.STRING
+    case 'N': return CellType.NUMBER
+    case 'E': return CellType.EMPTY
+  }
 }
 
 // TODO: this should give all the cells ids and be able to handle skipping a few lines / cells
@@ -58,29 +66,20 @@ const transform_data = (raw_data: rawData[][]): Cell[][] => {
   })))))
 }
 
-const convert_type = (type: "S" | "N" | "E"): CellType => {
-  switch(type) {
-    case "S": return CellType.STRING
-    case "N": return CellType.NUMBER
-    case "E": return CellType.EMPTY
-  }
-}
-
 const parse_data = (str: string): rawData[][] => str
-    .split("\n")
-    .filter((line: string) => !!line)
-    .map((line: string) => JSON.parse(line)) as rawData[][]
+  .split('\n')
+  .filter((line: string) => !!line)
+  .map((line: string) => JSON.parse(line)) as rawData[][]
 
 const parse_file = (str: string, name?: string): Spreadsheet => {
+  const [, config, , ...rest_arr] = str.split(/(\s?---\s?)/g).filter(x => !!x)
 
-  const [ , config, , ...rest_arr ] = str.split(/(\s?---\s?)/g).filter(x => !!x)
-
-  const rest = rest_arr.join("")
+  const rest = rest_arr.join('')
 
   return {
     options: transform_options(parse_options(config)),
     data: transform_data(parse_data(rest)),
-    name: name || 'spreadsheet-' + Math.floor(Math.random()*Math.pow(36, 4)).toString(36),
+    name: name || 'spreadsheet-' + Math.floor(Math.random() * Math.pow(36, 4)).toString(36),
     identifier_cells: {}
   }
 }

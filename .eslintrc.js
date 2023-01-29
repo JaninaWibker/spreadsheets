@@ -11,6 +11,7 @@ module.exports = {
   },
   plugins: ['react', '@typescript-eslint'],
   rules: {
+    'camelcase': 'off',
     'space-before-function-paren': 'off',
     // the behaviour of ternary operators is often more clear than using '||', '&&' or '??'
     'no-unneeded-ternary': 'off',

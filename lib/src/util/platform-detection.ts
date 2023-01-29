@@ -6,6 +6,7 @@ const isNotMacOrIos = () => !isMacOrIos()
 export default {
   isMac: isMacOrIos,
   isIos: isMacOrIos,
+  // eslint-disable-next-line object-shorthand
   isMacOrIos: isMacOrIos,
   isLinux: isNotMacOrIos,
   isWindows: isNotMacOrIos,
@@ -18,4 +19,3 @@ export {
   isNotMacOrIos as isLinux,
   isNotMacOrIos as isWindows,
 }
-

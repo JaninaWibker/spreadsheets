@@ -1,4 +1,4 @@
-import { CellType, CellSubType } from './CellTypes'
+import type { CellType, CellSubType } from './CellTypes'
 import type { LibType } from '../util/stdlib'
 
 import type { CSSProperties } from 'react'
@@ -58,7 +58,7 @@ export type SpreadsheetOptions = {
 }
 
 export type Spreadsheet = {
-  options: SpreadsheetOptions
+  options: SpreadsheetOptions,
   data: Cell[][],
   identifier_cells: { [key: string]: CellId } = {},
   name: string

@@ -13,11 +13,11 @@ const change_cell_types = (spreadsheet: Spreadsheet, cells: CellId[][], type: Ce
     cell.tp = type
     cell.stp = undefined
 
-    if(old_type === CellType.EMPTY) {
-      switch(type) {
-        case CellType.NUMBER: cell.vl = 0;  break;
-        case CellType.STRING: cell.vl = ''; break;
-        case CellType.EMPTY: break;
+    if (old_type === CellType.EMPTY) {
+      switch (type) {
+        case CellType.NUMBER: cell.vl = 0; break
+        case CellType.STRING: cell.vl = ''; break
+        case CellType.EMPTY: break
         default: throw new Error('forgot to add new case to switch statement')
       }
     }
@@ -32,22 +32,22 @@ const update = (spreadsheet: Spreadsheet, cell_id: CellId) => {
   // this gets picked up by get_cell which will then recompute the value of the cell
   spreadsheet.data[col][row].visited = false
 
-  if(cell.changes) {
+  if (cell.changes) {
     cell.changes // filter out cells which are also in the same cycle as the current cell // TODO: does this filter out too much?; should they be updated at least once?
       .filter(cell_id => !cell.cycle.find(cell_id_cycle => compare_cell_ids(cell_id, cell_id_cycle)))
       .forEach(cell_id => update(spreadsheet, cell_id))
-    }
+  }
 }
 
 const handleCellChange = (spreadsheet: Spreadsheet, cell: Cell, value: string) => {
   const [row, col] = cell._id
 
-  if(cell.name) {
+  if (cell.name) {
     spreadsheet.identifier_cells[cell.name] = cell._id
   }
 
   // nothing has changed (this check only works if vl is a string; numbers are explicitly checked again later on)
-  if(value === cell.vl) return
+  if (value === cell.vl) return
 
   // TODO: why is spreadsheet.data[row][col] used and not just cell? Is cell just a copy?
 
@@ -59,20 +59,20 @@ const handleCellChange = (spreadsheet: Spreadsheet, cell: Cell, value: string) =
   cell.cycle = []
 
   // if formula then assign new value to .vl and compute .fn
-  if(value.startsWith('=')) {
-    const {fn, refs: raw_refs} = parse_formula(value.substring(1))!
+  if (value.startsWith('=')) {
+    const { fn, refs: raw_refs } = parse_formula(value.substring(1))!
     cell.vl = value
     cell.fn = fn
     cell.refs = raw_refs.map(ref => typeof ref === 'string' ? lookup(ref, spreadsheet.identifier_cells) : ref) as CellId[]
   } else {
-    if(cell.tp === CellType.NUMBER) {
+    if (cell.tp === CellType.NUMBER) {
       cell.fn = undefined
       cell.refs = []
       cell.err = undefined
       cell.changes = cell.changes.filter(cell_id => !compare_cell_ids(cell._id, cell_id)) // incase of self reference remove entry from changes array
       // don't reset cycle just yet, this would mean also recomputing the changes array for other cells; this is already done further down the chain
       const parsed_value = parseFloat(value)
-      if(isNaN(parsed_value)) {
+      if (isNaN(parsed_value)) {
         console.log(cell)
         // TODO: what should happen here? this is what gets run if the value that is inputted is not a
         // TODO: number, but should the error be generated here or somewhere else; considering that no
@@ -81,13 +81,13 @@ const handleCellChange = (spreadsheet: Spreadsheet, cell: Cell, value: string) =
         // TODO: should be stronger safe-guards against this and errors should be displayed using the
         // TODO: same mechanism rendered markdown is displayed. This means that everything tagged as a
         // TODO: number should display an error if the content of the cell is not interpretable as a number.
-        cell.err = new Error("#NaN")
+        cell.err = new Error('#NaN')
       } else {
         // nothing has changed (had to parse to a number first to check this)
-        if(parsed_value === cell.vl) return
+        if (parsed_value === cell.vl) return
         cell.vl = parsed_value
       }
-    } else if(cell.tp === CellType.STRING) {
+    } else if (cell.tp === CellType.STRING) {
       cell.vl = value
     }
   }
@@ -110,17 +110,17 @@ const handleCellChange = (spreadsheet: Spreadsheet, cell: Cell, value: string) =
   // from === 'old' -> deletion
   // from === 'new' -> addition
   arr.forEach(pair => {
-    switch(pair.from) {
-      case 'old': {
+    switch (pair.from) {
+      case 'old':
         spreadsheet.data[pair.value[0]][pair.value[1]].changes = spreadsheet.data[pair.value[0]][pair.value[1]].changes.filter(ref =>
           ref[0] !== cell.row || ref[1] !== cell.col
         )
         console.log('in cell ' + generate_id_format(pair.value) + ' remove ' + generate_id_format(cell._id) + ' from changes')
-      } break;
-      case 'new': {
+        break
+      case 'new':
         spreadsheet.data[pair.value[0]][pair.value[1]].changes.push(cell._id)
         console.log('in cell ' + generate_id_format(pair.value) + ' add ' + generate_id_format(cell._id) + ' to changes')
-      } break;
+        break
     }
   })
 
@@ -128,22 +128,22 @@ const handleCellChange = (spreadsheet: Spreadsheet, cell: Cell, value: string) =
 
   const new_cycle = cell.cycle
 
-  if(new_cycle.length > 0 || old_cycle.length > 0) {
+  if (new_cycle.length > 0 || old_cycle.length > 0) {
     // changes that need to be performed on all involved cells
     const arr = compute_additions_and_deletions(new_cycle, old_cycle).sort((a, b) => (+(b.from === 'old')) - (+(a.from === 'old')))
 
     // update all existing cycle arrays, even if the array is going to be removed later on
-    old_cycle.forEach(([row, col]) => spreadsheet.data[row][col].cycle = new_cycle)
+    old_cycle.forEach(([row, col]) => { spreadsheet.data[row][col].cycle = new_cycle })
 
     // remove cycle arrays from now unused cells and add to newly added cells
     arr.forEach(pair => {
-      switch(pair.from) {
-        case 'old': {
+      switch (pair.from) {
+        case 'old':
           spreadsheet.data[pair.value[0]][pair.value[1]].cycle = []
-        } break;
-        case 'new': {
+          break
+        case 'new':
           spreadsheet.data[pair.value[0]][pair.value[1]].cycle = new_cycle
-        } break;
+          break
       }
     })
   }
@@ -167,24 +167,22 @@ const handleCellChange = (spreadsheet: Spreadsheet, cell: Cell, value: string) =
       cell.err = undefined // TODO: does this cause any unwanted side effects that im not aware of?
       cell._vl = cell.fn!((cell_id: string) => (get_cell(lib, spreadsheet)(cell_id, cell._id, false, spreadsheet.data[row][col]._id)), lib)
       console.log(generate_id_format(cell._id) + ' updated to ' + cell._vl)
-    } catch(err) {
+    } catch (err) {
       cell.err = err as Error
     }
 
     const maybe_err = check_errors(cell)
-    if(maybe_err !== undefined) cell.err = maybe_err
+    if (maybe_err !== undefined) cell.err = maybe_err
 
     cell.changes
       .filter(cell_id => !cell.cycle.find(cell_id_cycle => compare_cell_ids(cell_id, cell_id_cycle)))
       .map(([row, col]) => recurse(spreadsheet.data[row][col], self))
-
   }
 
   spreadsheet.data[row][col].changes
     .filter(cell_id => !spreadsheet.data[row][col].cycle.find(cell_id_cycle => compare_cell_ids(cell_id, cell_id_cycle)))
     .map(([row, col]) => recurse(spreadsheet.data[row][col], generate_id_format(cell._id)))
 }
-
 
 export {
   change_cell_types,

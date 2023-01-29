@@ -26,9 +26,8 @@ export type ASTType = 'call'
                     | 'e'
                     | 'cell'
 
-
 export type AST = {
-  type: any
+  type: any,
   sub_type: any,
   val: any,
   fn?: string

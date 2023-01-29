@@ -25,14 +25,12 @@ const keymap = {
   pageup: 'PageUp'
 } as { [key: string]: string }
 
-
-
-const KeyboardShortcutDisplay = ({ keys=[], theme_base='light', simple=false }: { keys: string[], theme_base?: 'light' | 'dark', simple?: boolean }) => {
+const KeyboardShortcutDisplay = ({ keys = [], theme_base = 'light', simple = false }: { keys: string[], theme_base?: 'light' | 'dark', simple?: boolean }) => {
   return (
     <React.Fragment>
-      <span className={"keyboard-shortcut" + (simple ? ' simple' : ' not-simple')}>
+      <span className={'keyboard-shortcut' + (simple ? ' simple' : ' not-simple')}>
         {keys.map((key, i) =>
-          <span key={i} className={"keyboard-shortcut-key " + theme_base + (keymap[key] ? '' : ' no-icon') + (simple ? ' simple' : ' not-simple')}>{keymap[key] || key.toUpperCase()}</span>
+          <span key={i} className={'keyboard-shortcut-key ' + theme_base + (keymap[key] ? '' : ' no-icon') + (simple ? ' simple' : ' not-simple')}>{keymap[key] || key.toUpperCase()}</span>
         )}
       </span>
       <wbr />

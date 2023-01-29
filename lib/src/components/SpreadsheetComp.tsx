@@ -29,11 +29,11 @@ const BORDER_CELL_WIDTH = 80
 const BORDER_CELL_HEIGHT = 25
 
 // settings associated css variables in order to be able to access these constants from within css
-document.documentElement.style.setProperty('--cell-width-px', CELL_WIDTH + 'px');
-document.documentElement.style.setProperty('--cell-height-px', CELL_HEIGHT + 'px');
+document.documentElement.style.setProperty('--cell-width-px', CELL_WIDTH + 'px')
+document.documentElement.style.setProperty('--cell-height-px', CELL_HEIGHT + 'px')
 
-document.documentElement.style.setProperty('--border-cell-width-px', BORDER_CELL_WIDTH + 'px');
-document.documentElement.style.setProperty('--border-cell-height-px', BORDER_CELL_HEIGHT + 'px');
+document.documentElement.style.setProperty('--border-cell-width-px', BORDER_CELL_WIDTH + 'px')
+document.documentElement.style.setProperty('--border-cell-height-px', BORDER_CELL_HEIGHT + 'px')
 
 type SpreadsheetProps = {
   spreadsheet: Spreadsheet
@@ -44,7 +44,7 @@ type SpreadsheetState = {
     start_x: number,
     start_y: number,
     end_x: number,
-    end_y: number,
+    end_y: number
     // _start_x: number,
     // _start_y: number,
     // _end_x: number,
@@ -59,7 +59,6 @@ type SpreadsheetState = {
 }
 
 export class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetState> {
-
   spreadsheet: Spreadsheet
   g: getCellCurried
 
@@ -94,10 +93,8 @@ export class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetStat
   }
 
   componentDidUpdate() {
-
     // this branch is only taken when the spreadsheet as a whole changes
-    if(this.spreadsheet.name !== this.props.spreadsheet.name) {
-
+    if (this.spreadsheet.name !== this.props.spreadsheet.name) {
       // no need to call transform_spreadsheet as this is already done by the code using <SpreadsheetComp />
       this.spreadsheet = this.props.spreadsheet
 
@@ -166,17 +163,17 @@ export class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetStat
   }
 
   private onChangeCellTextColor = (cells: CellId[][], color: string | undefined) => {
-    if(color === undefined) return // TODO: should this clear the color?
+    if (color === undefined) return // TODO: should this clear the color?
     cells.forEach(row => row.forEach(([row, col]) => {
       const cell = this.spreadsheet.data[row][col]
-      cell.style = { ...cell.style, color: color }
+      cell.style = { ...cell.style, color }
     }))
     console.log('text_color->' + color, cells)
     this.forceUpdate()
   }
 
   private onChangeCellBackgroundColor = (cells: CellId[][], color: string | undefined) => {
-    if(color === undefined) return // TODO: should this clear the color?
+    if (color === undefined) return // TODO: should this clear the color?
     cells.forEach(row => row.forEach(([row, col]) => {
       const cell = this.spreadsheet.data[row][col]
       cell.style = { ...cell.style, backgroundColor: color }
@@ -196,9 +193,9 @@ export class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetStat
       shift: shiftKey, alt: altKey, meta: metaKey, ctrl: ctrlKey, mod: platform_detection.isMacOrIos() ? metaKey : ctrlKey
     }))(e)
 
-    const fake_event = { type: e.type as FakeMouseEvent["type"], buttons: e.buttons, button: e.button, modifiers: modifiers, preventDefault: e.preventDefault.bind(e), target: e.target }
+    const fake_event = { type: e.type as FakeMouseEvent['type'], buttons: e.buttons, button: e.button, modifiers, preventDefault: e.preventDefault.bind(e), target: e.target }
 
-    switch(e.type) {
+    switch (e.type) {
       case 'click':
       case 'mousedown':
       case 'mouseup':
@@ -209,16 +206,16 @@ export class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetStat
   }
 
   private handleMouseContextMenu = (e: { type: string, buttons: number, button: number, modifiers: Modifiers, preventDefault: () => void, target: EventTarget }, [row, col]: CellId, [whole_row, whole_col]: [boolean, boolean]) => {
-    if(whole_row || whole_col) return
+    if (whole_row || whole_col) return
 
     const cell = this.spreadsheet.data[row][col]
 
-    let cell_type_icons = [<div />, <div />, <div />]
+    const cell_type_icons = [<div key={1} />, <div key={2} />, <div key={3} />]
 
-    switch(cell.tp) {
-      case CellType.NUMBER: cell_type_icons[0] = <Check />; break;
-      case CellType.STRING: cell_type_icons[1] = <Check />; break;
-      case CellType.EMPTY:  cell_type_icons[2] = <Check />; break;
+    switch (cell.tp) {
+      case CellType.NUMBER: cell_type_icons[0] = <Check />; break
+      case CellType.STRING: cell_type_icons[1] = <Check />; break
+      case CellType.EMPTY: cell_type_icons[2] = <Check />; break
       default: throw new Error('forgot to add new cell type to switch statement')
     }
 
@@ -228,15 +225,15 @@ export class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetStat
 
     let cells: CellId[][]
 
-    if(is_inside_selection(this.state.selection, [row, col])) {
+    if (is_inside_selection(this.state.selection, [row, col])) {
       cells = []
       const start_x = Math.min(this.state.selection.start_x, this.state.selection.end_x)
-      const end_x =   Math.max(this.state.selection.start_x, this.state.selection.end_x)
+      const end_x = Math.max(this.state.selection.start_x, this.state.selection.end_x)
       const start_y = Math.min(this.state.selection.start_y, this.state.selection.end_y)
-      const end_y =   Math.max(this.state.selection.start_y, this.state.selection.end_y)
-      for(let row = start_y; row <= end_y; row++) {
+      const end_y = Math.max(this.state.selection.start_y, this.state.selection.end_y)
+      for (let row = start_y; row <= end_y; row++) {
         cells[row - start_y] = []
-        for(let col = start_x; col <= end_x; col++) {
+        for (let col = start_x; col <= end_x; col++) {
           cells[row - start_y].push([row, col])
         }
       }
@@ -245,34 +242,48 @@ export class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetStat
     }
 
     const menu = [
-      { key: 'copy',      submenu: false, simple: true, name: 'Copy',       action: () => this.onCopyToClipboard(cells),     shortcut: ['mod', 'c'],   icon: <Copy /> },
-      { key: 'paste',     submenu: false, simple: true, name: 'Paste',      action: () => this.onPasteFromClipboard(cells),  shortcut: ['mod', 'v'],   icon: <Clipboard /> },
-      { key: 'cut',       submenu: false, simple: true, name: 'Cut',        action: () => this.onCutToClipboard(cells),      shortcut: ['mod', 'x'],   icon: <Scissors /> },
-      { key: 'clear',     submenu: false, simple: true, name: 'Clear cell', action: () => this.onClearCells(cells),          shortcut: ['backspace'],  icon: <Delete /> },
-      { key: 'cell_type', submenu: true,  simple: true, name: 'Cell Type', menu: [
-        { key: 'number', submenu: false,  simple: true, name: 'Number', action: () => this.onChangeCellType(CellType.NUMBER, cells), icon: cell_type_icons[0]},
-        { key: 'string', submenu: false,  simple: true, name: 'String', action: () => this.onChangeCellType(CellType.STRING, cells), icon: cell_type_icons[1]},
-        { key: 'empty',  submenu: false,  simple: true, name: 'Empty',  action: () => this.onChangeCellType(CellType.EMPTY,  cells), icon: cell_type_icons[2]},
-      ], expand_icon: <Play fill={true} /> },
-      { key: 'text-color',        submenu: true, simple: false, component: (entry: AdvancedEntry, close: () => void, register_submenu: (submenu: { is_open: boolean, close: () => void }) => number, notify_open_submenu: (idx: number, is_open: boolean) => void) =>
+      { key: 'copy', submenu: false, simple: true, name: 'Copy', action: () => this.onCopyToClipboard(cells), shortcut: ['mod', 'c'], icon: <Copy /> },
+      { key: 'paste', submenu: false, simple: true, name: 'Paste', action: () => this.onPasteFromClipboard(cells), shortcut: ['mod', 'v'], icon: <Clipboard /> },
+      { key: 'cut', submenu: false, simple: true, name: 'Cut', action: () => this.onCutToClipboard(cells), shortcut: ['mod', 'x'], icon: <Scissors /> },
+      { key: 'clear', submenu: false, simple: true, name: 'Clear cell', action: () => this.onClearCells(cells), shortcut: ['backspace'], icon: <Delete /> },
+      {
+        key: 'cell_type',
+        submenu: true,
+        simple: true,
+        name: 'Cell Type',
+        menu: [
+          { key: 'number', submenu: false, simple: true, name: 'Number', action: () => this.onChangeCellType(CellType.NUMBER, cells), icon: cell_type_icons[0] },
+          { key: 'string', submenu: false, simple: true, name: 'String', action: () => this.onChangeCellType(CellType.STRING, cells), icon: cell_type_icons[1] },
+          { key: 'empty', submenu: false, simple: true, name: 'Empty', action: () => this.onChangeCellType(CellType.EMPTY, cells), icon: cell_type_icons[2] },
+        ],
+        expand_icon: <Play fill={true} />
+      },
+      {
+        key: 'text-color',
+        submenu: true,
+        simple: false,
+        component: (entry: AdvancedEntry, close: () => void, register_submenu: (submenu: { is_open: boolean, close: () => void }) => number, notify_open_submenu: (idx: number, is_open: boolean) => void) =>
           <ColorPickerMenuEntry text="Text color" key={entry.key} color={undefined} cb={color => this.onChangeCellTextColor(cells, color)} close={close} register_submenu={register_submenu} notify_open_submenu={notify_open_submenu} />
       },
-      { key: 'background-color',  submenu: true, simple: false, component: (entry: AdvancedEntry, close: () => void, register_submenu: (submenu: { is_open: boolean, close: () => void }) => number, notify_open_submenu: (idx: number, is_open: boolean) => void) =>
+      {
+        key: 'background-color',
+        submenu: true,
+        simple: false,
+        component: (entry: AdvancedEntry, close: () => void, register_submenu: (submenu: { is_open: boolean, close: () => void }) => number, notify_open_submenu: (idx: number, is_open: boolean) => void) =>
           <ColorPickerMenuEntry text="Background color" key={entry.key} color={undefined} cb={color => this.onChangeCellBackgroundColor(cells, color)} close={close} register_submenu={register_submenu} notify_open_submenu={notify_open_submenu} />
       },
-      { key: 'name',  submenu: false, simple: true, name: 'Set name', icon: <Type /> },
+      { key: 'name', submenu: false, simple: true, name: 'Set name', icon: <Type /> },
     ]
 
     this.openContextMenu(e.target as HTMLElement, menu)
   }
 
   private handleMouseSelection = (e: FakeMouseEvent, cell_id: CellId, whole_row_col: [boolean, boolean]) => {
-
-    if(e.buttons === 2 || e.button === 2) return // block right-clicking
+    if (e.buttons === 2 || e.button === 2) return // block right-clicking
 
     const dimensions = {
       x: this.spreadsheet.data[0].length, // columns
-      y: this.spreadsheet.data.length     // rows
+      y: this.spreadsheet.data.length // rows
     }
 
     this.setState({
@@ -280,11 +291,10 @@ export class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetStat
     })
   }
 
-  handleKeypress = (key: "ArrowLeft" | "ArrowUp" | "ArrowRight" | "ArrowDown", modifiers: Modifiers, preventDefault: () => void) => {
-
+  handleKeypress = (key: 'ArrowLeft' | 'ArrowUp' | 'ArrowRight' | 'ArrowDown', modifiers: Modifiers, preventDefault: () => void) => {
     const dimensions = {
       x: this.spreadsheet.data[0].length, // columns
-      y: this.spreadsheet.data.length     // rows
+      y: this.spreadsheet.data.length // rows
     }
 
     const { selection, focused } = handleSelectionKeypress(key, {
@@ -295,7 +305,7 @@ export class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetStat
     preventDefault()
 
     this.setState({ selection, focused }, () => {
-      // if(this.selectionElement) scroll_into_view_if_needed(this.selectionElement) // TODO: what is the purpose of this exactly?; well this element SHOULD exist but somehow isn't mentioned anywhere else
+      // if (this.selectionElement) scroll_into_view_if_needed(this.selectionElement) // TODO: what is the purpose of this exactly?; well this element SHOULD exist but somehow isn't mentioned anywhere else
     })
   }
 
@@ -305,15 +315,14 @@ export class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetStat
   }
 
   render_cell(cell: Cell) {
-
     const v = this.g(cell.id, cell._id, true, cell._id) // TODO: this might need to change when `g` changes
 
     let content
-    if(cell.err) {
+    if (cell.err) {
       content = cell.err.message
-    } else if(cell.cycle.length === 1 || cell.refs.find(cell_id => compare_cell_ids(cell._id, cell_id))) {
+    } else if (cell.cycle.length === 1 || cell.refs.find(cell_id => compare_cell_ids(cell._id, cell_id))) {
       content = '#Self reference'
-    } else if(cell.cycle.length > 0) {
+    } else if (cell.cycle.length > 0) {
       content = '#Circular references'
     } else {
       content = format_data(v, cell.tp, cell.stp, cell.r_dec || this.props.spreadsheet.options.rounding)
@@ -341,37 +350,40 @@ export class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetStat
   // I guess almost everyone has seen this kind of weirdness before where it should be enough but like 0.01px more are
   // required for some reason (could be floating point precision but I don't think so, probably just subpixel rendering stuff)
   render() {
-
     const columns = this.spreadsheet.data[0].length
     const rows = this.spreadsheet.data.length
 
     return (
       <div style={{
-        width:  ((columns * CELL_WIDTH)  + BORDER_CELL_WIDTH  + 1) + 'px',
-        height: ((rows    * CELL_HEIGHT) + BORDER_CELL_HEIGHT + 1) + 'px'
+        width: ((columns * CELL_WIDTH) + BORDER_CELL_WIDTH + 1) + 'px',
+        height: ((rows * CELL_HEIGHT) + BORDER_CELL_HEIGHT + 1) + 'px'
       }}>
         <table className="table">
           <tbody>
-            <tr id={'r0l'} key={'r0l'}>
-              <BorderCell key={'_._'} id={'_._'} className="" onMouseEvent={this.handleCellMouseEvents} content="/" />
+            <tr id="r0l" key="r0l">
+              <BorderCell key="_._" id="_._" className="" onMouseEvent={this.handleCellMouseEvents} content="/" />
               {range(columns).map(col_num =>
                 <BorderCell key={'_.' + col_num} id={'_.' + col_num} className="border-top" content={generate_col_id_format(col_num)} onMouseEvent={this.handleCellMouseEvents} />
               )}
             </tr>
-            {range(rows).map(row_num =>
+            {range(rows).map(row_num => (
               <tr id={'r' + row_num} key={'r' + row_num}>
-                <BorderCell key={row_num + '._'} id={row_num + '._'} className="border-left" content={String(row_num+1)} onMouseEvent={this.handleCellMouseEvents} />
+                <BorderCell key={row_num + '._'} id={row_num + '._'} className="border-left" content={String(row_num + 1)} onMouseEvent={this.handleCellMouseEvents} />
                 {range(columns).map(col_num => this.render_cell(this.spreadsheet.data[row_num][col_num]))}
               </tr>
+            )
             )}
           </tbody>
         </table>
         <Selection
           start={{ x: this.state.selection.start_x, y: this.state.selection.start_y }}
-          end=  {{ x: this.state.selection.end_x,   y: this.state.selection.end_y }}
+          end= {{ x: this.state.selection.end_x, y: this.state.selection.end_y }}
           constants={{
-            cell_width:       CELL_WIDTH,        cell_height:       CELL_HEIGHT,
-            index_cell_width: BORDER_CELL_WIDTH, index_cell_height: BORDER_CELL_HEIGHT}}
+            cell_width: CELL_WIDTH,
+            cell_height: CELL_HEIGHT,
+            index_cell_width: BORDER_CELL_WIDTH,
+            index_cell_height: BORDER_CELL_HEIGHT
+          }}
         />
         {this.state.context_menu_ref
           ? <ContextMenu referenceElement={this.state.context_menu_ref} close={this.closeContextMenu} menu={this.state.context_menu_entries} placement="bottom" />
