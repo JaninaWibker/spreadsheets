@@ -19,16 +19,16 @@ jobs:
           run_install: false
 
       - name: First, install dependencies of library
-        run: pnpm --filter "lib" install
+        run: pnpm --filter "./lib" install
 
       - name: Second, build library
-        run: pnpm --filter "lib" build
+        run: pnpm --filter "./lib" build
 
       - name: Third, install library
-        run: pnpm --filter "demo" install
+        run: pnpm --filter "./demo" install
 
       - name: Fourth, build demo
-        run: pnpm --filter "demo" build
+        run: pnpm --filter "./demo" build
 
       - name: Fifth, lint everything
         run: pnpm --filter "*" lint
