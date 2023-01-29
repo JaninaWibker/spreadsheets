@@ -24,7 +24,7 @@ Spreadsheets is a small simple (**WIP**) spreadsheet application web app thingy.
 ## Installation
 
 ```
-git clone https://github.com/JannikWibker/spreadsheets
+git clone https://github.com/JaninaWibker/spreadsheets
 cd spreadsheets
 npm install
 npm start
