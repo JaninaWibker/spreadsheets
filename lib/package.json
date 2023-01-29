@@ -1,0 +1,34 @@
+{
+  "name": "spreadsheets",
+  "version": "0.1.0",
+  "private": true,
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "nearley-excel": "nearleyc src/util/parser/excel.ne -o src/util/parser/excel.js",
+    "nearley-strings": "nearleyc src/util/parser/string.ne -o src/util/parser/string.js"
+  },
+  "dependencies": {
+    "@popperjs/core": "^2.11.6",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-color": "^2.19.3",
+    "react-popper": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/moo": "^0.5.5",
+    "@types/nearley": "^2.11.2",
+    "@types/node": "^18.11.18",
+    "@types/react": "^18.0.27",
+    "@types/react-dom": "^18.0.10",
+    "@types/react-color": "^3.0.6",
+    "@vitejs/plugin-react": "^2.2.0",
+    "moo": "^0.5.2",
+    "nearley": "^2.20.1",
+    "tsup": "^6.5.0",
+    "typescript": "^4.9.4",
+    "vite": "^3.2.5"
+  }
+}

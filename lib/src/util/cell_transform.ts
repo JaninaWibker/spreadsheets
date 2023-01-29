@@ -2,7 +2,7 @@ import { generate_id_format } from './cell_id'
 import { lookup, destructure, default_value, is_formula, parse_formula, cell_to_json_replacer, compare_cell_ids } from './helpers'
 import type { Cell, CellId, Spreadsheet } from '../types/Spreadsheet'
 import { CellType } from '../types/CellTypes'
-import { get_cycles, find_cycle_starting_from_node } from '../util/cycle_detection'
+import { get_cycles, find_cycle_starting_from_node } from './cycle_detection'
 
 class CircularReferenceError extends Error {  }
 class TransitiveError extends Error {  }
@@ -77,8 +77,8 @@ const get_cell = (lib: LibType, spreadsheet: Pick<Spreadsheet, 'data' | 'identif
       }
     } else return cell.vl
   }
-  
-  
+
+
   return (target: string, call_cell: CellId, byRender=false, rec_call_cell: CellId): string | number => {
     try {
       return inner_get_cell_raw(target, call_cell, byRender, rec_call_cell)
@@ -121,7 +121,7 @@ const recurse = (lib: LibType, spreadsheet: Pick<Spreadsheet, 'data' | 'identifi
   })
   if(cell.fn && cell.cycle.length === 0) {
     cell._vl = cell.fn((cell_id: string) => (get_cell(lib, spreadsheet)(cell_id, cell._id, false, origin_cell)), lib)
-    
+
     console.log('calculated value for cell ' + generate_id_format(cell._id) + ' (' + cell._vl + ')')
     const maybe_err = check_errors(cell)
     if(maybe_err !== undefined) cell.err = maybe_err

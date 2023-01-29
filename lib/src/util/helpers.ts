@@ -1,3 +1,4 @@
+// @ts-ignore
 import { inlineLexer } from './inline-markdown.js'
 import { transpile } from './parser/index'
 
@@ -8,6 +9,7 @@ import { parse_cell_id_format } from './cell_id'
 const Alphabet = 'ABCDEFGHIJKLNMOPQRSTUVWXYZ'.split('')
 const alphabet = 'abcdefghijklnmopqrstuvwxyz'.split('')
 
+declare function inlineLexer(text: string, options: any, marked_options: any): string
 
 const MARKED_OPTIONS = {
   smartypants: true
@@ -97,7 +99,7 @@ const scroll_into_view_if_needed = (element: HTMLElement) =>
 // this supports "ABC321", "123.123" as well as named references as cell formats
 // returns null when cell not found
 const lookup = (cell_id: string, identifier_cells: { [key: string]: CellId }): [number, number] | null => {
-  
+
   // this supports both "ABC321", "123.123" as cell formats
   const pair = parse_cell_id_format(cell_id)
 

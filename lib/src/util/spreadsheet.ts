@@ -4,7 +4,7 @@ import { get_cell, check_errors, check_circular_for_cell } from './cell_transfor
 import { CellType } from '../types/CellTypes'
 import type { Cell, CellId, Spreadsheet } from '../types/Spreadsheet'
 
-import lib from './stdlib'
+import { lib } from './stdlib'
 
 const change_cell_types = (spreadsheet: Spreadsheet, cells: CellId[][], type: CellType) => {
   cells.forEach(row => row.forEach(([row, col]) => {

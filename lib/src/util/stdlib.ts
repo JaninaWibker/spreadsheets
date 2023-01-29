@@ -96,7 +96,7 @@ const lib = {
 
 export type LibType = typeof lib
 
-export default lib
+export { lib }
 
 
 // left, right, now, choose, randbetween, convert, time stuff

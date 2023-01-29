@@ -17,7 +17,7 @@ import type { Modifiers, ModifiersPlatformAdjusted, FakeMouseEvent } from '../ty
 
 import { Check, Clipboard, Copy, Delete, Scissors, Type, Play } from '../icons/index'
 
-import lib from '../util/stdlib'
+import { lib } from '../util/stdlib'
 
 import '../css/spreadsheet.css'
 
@@ -58,7 +58,7 @@ type SpreadsheetState = {
   context_menu_ref: Element | null
 }
 
-export default class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetState> {
+export class SpreadsheetComp extends Component<SpreadsheetProps, SpreadsheetState> {
 
   spreadsheet: Spreadsheet
   g: getCellCurried

@@ -1,17 +1,10 @@
 import React from 'react'
-import SpreadsheetComp from './components/SpreadsheetComp'
+import { SpreadsheetDisplay, fillTableEmpty, fillTableIds, transformSpreadsheet, stdLib, parseFile, CellType } from 'spreadsheets'
+import type { Spreadsheet } from 'spreadsheets'
 
-import type { Spreadsheet } from './types/Spreadsheet'
-import { CellType } from './types/CellTypes'
+import 'spreadsheets/dist/index.css'
 
-import { fillTableEmpty, fillTableIds } from './util/cell_creation'
-import { transform_spreadsheet } from './util/cell_transform'
-import lib from './util/stdlib'
-import parse_file from './util/file-parser'
-
-import './css/index.css'
-
-const file_demo_spreadsheet = transform_spreadsheet(lib, parse_file(`
+const file_demo_spreadsheet = transformSpreadsheet(stdLib, parseFile(`
 ---
 number.rounding: 2
 cell.width: 224
@@ -24,7 +17,7 @@ index_cell.height: 25
 [ { "tp": "S", "vl": "=pi" }, { "tp": "N", "vl": "=thisIsSomeName" } ]
 [ { "tp": "E" }, { "tp": "S", "vl": "=IF(B1 > 5, \\"true\\", \\"false\\")", "name": "blub" } ]`, 'file_demo_spreadsheet'))
 
-const demo_spreadsheet: Spreadsheet = transform_spreadsheet(lib, {
+const demo_spreadsheet: Spreadsheet = transformSpreadsheet(stdLib, {
   options: {
     rounding: 2,
     // x_default: [{ width: 120 }],
@@ -55,7 +48,7 @@ const App = () => {
   return (
     <div>
       <div className="spreadsheet-wrapper">
-        <SpreadsheetComp spreadsheet={spreadsheet} />
+        <SpreadsheetDisplay spreadsheet={spreadsheet} />
       </div>
       <button onClick={() => setSpreadsheet(file_demo_spreadsheet)}>load other spreadsheet</button>
     </div>

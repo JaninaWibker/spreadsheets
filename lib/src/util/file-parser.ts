@@ -85,4 +85,4 @@ const parse_file = (str: string, name?: string): Spreadsheet => {
   }
 }
 
-export default parse_file
+export { parse_file }
