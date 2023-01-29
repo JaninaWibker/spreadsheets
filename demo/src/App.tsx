@@ -4,7 +4,7 @@ import type { Spreadsheet } from 'spreadsheets'
 
 import 'spreadsheets/dist/index.css'
 
-const file_demo_spreadsheet = transformSpreadsheet(stdLib, parseFile(`
+const fileDemoSpreadsheet = transformSpreadsheet(stdLib, parseFile(`
 ---
 number.rounding: 2
 cell.width: 224
@@ -15,9 +15,9 @@ index_cell.height: 25
 [{ "tp": "S", "vl": "**test2**", "style": { "fontFamily": "Menlo" } }, { "tp": "N", "vl": 5, "name": "thisIsSomeName" } ]
 [{ "tp": "S", "vl": "\`123\`: blub" }, { "tp": "N", "vl": "=A1:A1" } ]
 [ { "tp": "S", "vl": "=pi" }, { "tp": "N", "vl": "=thisIsSomeName" } ]
-[ { "tp": "E" }, { "tp": "S", "vl": "=IF(B1 > 5, \\"true\\", \\"false\\")", "name": "blub" } ]`, 'file_demo_spreadsheet'))
+[ { "tp": "E" }, { "tp": "S", "vl": "=IF(B1 > 5, \\"true\\", \\"false\\")", "name": "blub" } ]`, 'fileDemoSpreadsheet'))
 
-const demo_spreadsheet: Spreadsheet = transformSpreadsheet(stdLib, {
+const demoSpreadsheet: Spreadsheet = transformSpreadsheet(stdLib, {
   options: {
     rounding: 2,
     // x_default: [{ width: 120 }],
@@ -33,24 +33,24 @@ const demo_spreadsheet: Spreadsheet = transformSpreadsheet(stdLib, {
   //   [{tp: CellType.EMPTY, vl: ''},                                        {tp: CellType.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
   // ])),
   data: fillTableIds(4, 2, fillTableEmpty(4, 2, [
-    [{tp: CellType.NUMBER, vl: 5},     {tp: CellType.NUMBER, vl: '=A4'}],
-    [{tp: CellType.NUMBER, vl: '=B1'}, {tp: CellType.NUMBER, vl: '=B3'}],
-    [{tp: CellType.NUMBER, vl: '=A3'}, {tp: CellType.NUMBER, vl: 0}],
-    [{tp: CellType.NUMBER, vl: '=COUNTIF(A1:A3, . it == 0)'},     {tp: CellType.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub'}],
+    [{ tp: CellType.NUMBER, vl: 5 }, { tp: CellType.NUMBER, vl: '=A4' }],
+    [{ tp: CellType.NUMBER, vl: '=B1' }, { tp: CellType.NUMBER, vl: '=B3' }],
+    [{ tp: CellType.NUMBER, vl: '=A3' }, { tp: CellType.NUMBER, vl: 0 }],
+    [{ tp: CellType.NUMBER, vl: '=COUNTIF(A1:A3, . it == 0)' }, { tp: CellType.STRING, vl: '=IF(B1 > 5, "true", "false")', name: 'blub' }],
   ])),
-  name: 'demo_spreadsheet',
+  name: 'demoSpreadsheet',
   identifier_cells: {}
 })
 
 const App = () => {
-  const [spreadsheet, setSpreadsheet] = React.useState<Spreadsheet>(demo_spreadsheet)
+  const [spreadsheet, setSpreadsheet] = React.useState<Spreadsheet>(demoSpreadsheet)
 
   return (
     <div>
       <div className="spreadsheet-wrapper">
         <SpreadsheetDisplay spreadsheet={spreadsheet} />
       </div>
-      <button onClick={() => setSpreadsheet(file_demo_spreadsheet)}>load other spreadsheet</button>
+      <button onClick={() => setSpreadsheet(fileDemoSpreadsheet)}>load other spreadsheet</button>
     </div>
   )
 }
