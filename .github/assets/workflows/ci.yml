@@ -1,0 +1,34 @@
+name: CI
+
+on: push
+
+jobs:
+
+  lint:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 7
+          run_install: false
+
+      - name: First, lint everything
+        run: pnpm --filter "*" lint
+
+      - name: Second, install dependencies of library
+        run: pnpm --filter "lib" install
+
+      - name: Third, build library
+        run: pnpm --filter "lib" build
+
+      - name: Fourth, install library
+        run: pnpm --filter "demo" install
+
+      - name: Fifth, build demo
+        run: pnpm --filter "demo" build
